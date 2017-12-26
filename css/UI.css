@@ -1,0 +1,24 @@
+#query{
+	width:600px;
+}
+svg.graph{
+	min-height:600px;
+	border:1px solid grey;
+	width:100%;
+	box-shadow: 1px 1px 2px 1px grey;
+}
+#NED{
+	overflow:auto;
+}
+#addBtn{
+	position:absolute;
+	right: 30px;
+    top: 10px;
+    width: 29px;
+}
+#addBtn span{
+	margin-left: -2px;
+}
+.links path{
+	fill:none;
+}
