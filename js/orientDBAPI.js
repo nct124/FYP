@@ -5,12 +5,16 @@
     function Plugin(element, options) {
 		//set default options
         this.element = element;
-		parent = this;
+		var parent = this;
         this.options = {
             colorGroup:'@class',
-			label:"name",
-			IDlink:"@rid"
+			nodeLabel:{},
+			edgeLabel:{},
+			IDlink:"@rid",
+			schemaURL:"http://localhost:2480/function/Testing/classProperty/",
+			rdy:function(){}
         };
+		$.extend(this.options, options);
 		this.nodes = [];
 		this.links = [];
 		this.deleted = {};
@@ -22,15 +26,20 @@
 		this.neighborMap = {};
 		this.db = "Testing";
         this.init(options);
+		//get schema
+		ajax(this.options.schemaURL,"",function(result){
+			parent.schemas = result;
+			options.rdy();
+		})
     };
 	
     Plugin.prototype = {
         init: function (options) {
 			//init and overwrite the functions
 			var parent = this;
-            $.extend(this.options, options);
+            
 			this.svg = d3.select("#"+$(this.element).attr('id'));
-			
+			$.extend(this.options, options);
 			var width = $(this.svg._groups[0][0]).parent().width()//this.svg.attr("width");
 			var height = $(this.svg._groups[0][0]).parent().height()//this.svg.attr("height");
 			var rect = this.svg.append("rect")
@@ -49,7 +58,7 @@
 			this.color = d3.scaleOrdinal(d3.schemeCategory20);
 
 			this.simulation = d3.forceSimulation()
-			.force("link", d3.forceLink().id(function(d) { return d[parent.options.IDlink]; }).distance(100).strength(1))
+			.force("link", d3.forceLink().id(function(d) { return d[parent.options.IDlink]; }).distance(500).strength(0.5))
 			.force("charge", d3.forceManyBody())
 			.force("center", d3.forceCenter(width / 2, height / 2));
 			
@@ -78,8 +87,8 @@
 			var data = this.data.result;
 			for(var i=0;i<data.length;i++){
 				var checkVertex = false;
-				for(var j=0;j<schemas.result[0].vertex.length;j++){
-					if(data[i]['@class']==schemas.result[0].vertex[j].name){
+				for(var j=0;j<this.schemas.result[0].vertex.length;j++){
+					if(data[i]['@class']==this.schemas.result[0].vertex[j].name){
 						checkVertex = true;
 						break;
 					}
@@ -92,18 +101,31 @@
 					data[i].target = data[i].in;
 					this.links.push(data[i]);
 					this.edgeMap[data[i]['@rid']] = data[i];
-					if(this.neighborMap[data[i]['@class']+"_"+data[i]['in']]==undefined){
-						this.neighborMap[data[i]['@class']+"_"+data[i]['in']]=[];
+					if(this.directed){
+						if(this.neighborMap[data[i]['@class']+"_"+data[i]['out']]==undefined){
+							this.neighborMap[data[i]['@class']+"_"+data[i]['out']]=[];
+						}
+						this.neighborMap[data[i]['@class']+"_"+data[i]['out']].push(data[i]['in']);
+					}else{
+						if(this.neighborMap[data[i]['@class']+"_"+data[i]['out']]==undefined){
+							this.neighborMap[data[i]['@class']+"_"+data[i]['out']]=[];
+						}
+						if(this.neighborMap[data[i]['@class']+"_"+data[i]['out']].indexOf(data[i]['in'])==-1){
+							this.neighborMap[data[i]['@class']+"_"+data[i]['out']].push(data[i]['in']);
+						}
+						if(this.neighborMap[data[i]['@class']+"_"+data[i]['in']]==undefined){
+							this.neighborMap[data[i]['@class']+"_"+data[i]['in']]=[];
+						}
+						if(this.neighborMap[data[i]['@class']+"_"+data[i]['in']].indexOf(data[i]['out'])==-1){
+							this.neighborMap[data[i]['@class']+"_"+data[i]['in']].push(data[i]['out']);
+						}
 					}
-					this.neighborMap[data[i]['@class']+"_"+data[i]['in']].push(data[i]['out']);
 				}
 			}
-			console.log(this.neighborMap);
 			this.findDuplicateLinks();
         },
 		toggleDirected:function(directed){
 			this.directed = directed;
-			console.log(directed);
 			this.resetGraph();
 		},
 		findDuplicateLinks: function () {
@@ -137,6 +159,9 @@
 			.data(this.links)
 			.enter().append("path")
 			.attr("stroke","rgb(0,0,0)")
+			.attr("id",function(d){
+				return d['@rid'];
+			})
 			.attr("stroke-width", function(d) { 
 				if(parent.options.weight){
 					return d[parent.options.weight]; 
@@ -192,7 +217,7 @@
 			this.hoverPoints= this.initHoverClick(this.hoverPoints)
 			
 			//node labels
-			this.text = this.svg.select(".wrapper").append("g").attr("class", "labels").selectAll("g")
+			this.nodeText = this.svg.select(".wrapper").append("g").attr("class", "nodeLabels").selectAll("g")
 			.data(this.nodes)
 			.enter().append("text")
 			.attr("x", 0)
@@ -201,8 +226,25 @@
 			.style("font-size", "0.7em")
 			.on("mouseover",this.mouseover)
 			.on("mouseout",this.mouseout)
-			.text(function(d) { return d[parent.options.label]; });
-
+			.text(function(d) { if(parent.options.nodeLabel[d['@class']]!=""){return d[parent.options.nodeLabel[d['@class']]]; }else{ return "";}});
+			
+			//edge labels
+			this.edgeText = this.svg.select(".wrapper").append("g").attr("class", "edgeLabels").selectAll("g")
+			.data(this.links)
+			.enter().append("text")
+			.attr("dx","400px")
+			.attr("dy", "-10px")
+			.style("font-family", "sans-serif")
+			.style("font-size", "14px")
+			.on("mouseover",this.mouseover)
+			.on("mouseout",this.mouseout)
+			
+			this.edgeText.append('textPath')
+				.attr('xlink:href',function(d,i) {return "#"+d['@rid']})
+				.style("pointer-events", "none")
+				.text(function(d) { if(parent.options.edgeLabel[d['@class']]!=""){return d[parent.options.edgeLabel[d['@class']]]; }else{ return "";}});
+			
+			
 			this.simulation
 			.nodes(this.nodes)
 			.on("tick", function(){
@@ -216,7 +258,7 @@
 				parent.node
 				.attr("cx", function(d) { return d.x; })
 				.attr("cy", function(d) { return d.y; });
-				parent.text
+				parent.nodeText
 				.attr("x", function(d) { return d.x; })
 				.attr("y", function(d) { return d.y; });
 				parent.hoverPoints
@@ -235,7 +277,7 @@
 				.on("zoom", function(){
 					parent.link.attr("transform", d3.event.transform);
 					parent.node.attr("transform", d3.event.transform);
-					parent.text.attr("transform", d3.event.transform);
+					parent.nodeText.attr("transform", d3.event.transform);
 					parent.hoverPoints.attr("transform", d3.event.transform);
 				})
 			)
@@ -284,15 +326,14 @@
 			});
 			return node;
 		},
+		//to be editted to remove manipulating UI in plugin
 		initEdgeClick: function (edges){
 			var parent = this;
 			edges.on("click",function(edge,index){
 				parent.loadClass(false);
-				//var table = $(".sidebar table");
-				//table.find("tr:gt(0):lt("+($(".sidebar table tr").length-3)+")").remove();
 				var formchild = $("#NED form div:nth-child(1)");
 				formchild.nextAll().remove();
-				var properties = schemas.result[0].edge;
+				var properties = parent.schemas.result[0].edge;
 				var classProperty;
 				for(var i=0;i<properties.length;i++){
 					if(properties[i].name==edge['@class']){
@@ -303,7 +344,6 @@
 				}
 				if(classProperty!=undefined){
 					for(var i=0;i<classProperty.length;i++){
-						//table.find("tr:first-child").after("<tr><td>"+classProperty[i].name+":</td><td><input type='text' value='"+edge[classProperty[i].name]+"' id='class_"+classProperty[i].name+"'></td></tr>");
 						formchild.after("<div class='form-group'>"+
 											"<label for='class_"+classProperty[i].name+"'>"+classProperty[i].name+":</label>"+
 											"<input type='text' value="+edge[classProperty[i].name]+" class='form-control' id='class_"+classProperty[i].name+"'>"+
@@ -320,9 +360,32 @@
 					$("#CUbtn").val("Create");
 					$("#deletebtn").css("display","none");
 				}
+				//load metrics for the node
+				var nodekey = "#NED .table";
+				$(nodekey).html("");
+				$(nodekey).append("<tr><td>ID</td><td>"+edge['@rid']+"</td></tr>");
+				$(nodekey).append("<tr class='source'><td>Source</td><td>"+edge['out']+"</td></tr>");
+				$(nodekey).append("<tr class='target'><td>Target</td><td>"+edge['in']+"</td></tr>");
+				$(nodekey+" tr.source")
+				.hover(function(){
+					var rid = $(nodekey+" tr.source td:nth-child(2)").html();
+					$(".nodes circle[rid='"+rid+"']").attr("fill", "red");
+				},function(){
+					var rid = $(nodekey+" tr.source td:nth-child(2)").html();
+					$(".nodes circle[rid='"+rid+"']").attr("fill", "#1f77b4");
+				});
+				$(nodekey+" tr.target")
+				.hover(function(){
+					var rid = $(nodekey+" tr.target td:nth-child(2)").html();
+					$(".nodes circle[rid='"+rid+"']").attr("fill", "red");
+				},function(){
+					var rid = $(nodekey+" tr.target td:nth-child(2)").html();
+					$(".nodes circle[rid='"+rid+"']").attr("fill", "#1f77b4");
+				});
 			});
 			return edges;
 		},
+		//to be editted to remove manipulating UI in plugin
 		initNodeClick: function (nodes){
 			var parent = this;
 			nodes.on("click",function(node,index){
@@ -341,7 +404,7 @@
 					var formchild = $("#NED form div:nth-child(1)");
 					formchild.nextAll().remove();
 					$("#classType").removeAttr("disabled");
-					var properties = schemas.result[0].vertex;
+					var properties = parent.schemas.result[0].vertex;
 					var classProperty;
 					for(var i=0;i<properties.length;i++){
 						if(properties[i].name==node['@class']){
@@ -375,10 +438,14 @@
 					var nodekey = "#NED .table";
 					$(nodekey).html("");
 					$(nodekey).append("<tr><td>ID</td><td>"+node['@rid']+"</td></tr>");
-					for(var i=0;i<schemas.result[0].edge.length;i++){
-						$(nodekey).append("<tr><td>"+schemas.result[0].edge[i].name+" in Degree</td><td>"+node['in_'+schemas.result[0].edge[i].name].length+"</td></tr>");
-						$(nodekey).append("<tr><td>"+schemas.result[0].edge[i].name+" out Degree</td><td>"+node['out_'+schemas.result[0].edge[i].name].length+"</td></tr>");
-						$(nodekey).append("<tr><td>"+schemas.result[0].edge[i].name+" CC</td><td>"+cc+"</td></tr>");
+					for(var i=0;i<parent.schemas.result[0].edge.length;i++){
+						if(node['in_'+parent.schemas.result[0].edge[i].name]!=undefined){
+							$(nodekey).append("<tr><td>"+parent.schemas.result[0].edge[i].name+" in Degree</td><td>"+node['in_'+parent.schemas.result[0].edge[i].name].length+"</td></tr>");
+						}
+						if(node['out_'+parent.schemas.result[0].edge[i].name]!=undefined){
+							$(nodekey).append("<tr><td>"+parent.schemas.result[0].edge[i].name+" out Degree</td><td>"+node['out_'+parent.schemas.result[0].edge[i].name].length+"</td></tr>");
+						}
+						$(nodekey).append("<tr><td>"+parent.schemas.result[0].edge[i].name+" CC</td><td>"+cc+"</td></tr>");
 					}					
 				}
 			});
@@ -387,32 +454,29 @@
 		calCC: function(node,edgeType){
 			var cc = 0;
 			var neighbor = this.neighborMap[edgeType+"_"+node['@rid']];
-			console.log(neighbor);
 			var Nv = 0;
 			//find num of neighbors who are neighbors of each other
-			for(var i=0;i<neighbor.length;i++){
-				for(var j=1;j<neighbor.length;j++){
-					//if its not itself
-					if(neighbor[i]!=neighbor[j]){
-						var arrA = this.neighborMap[edgeType+"_"+neighbor[i]];
-						var arrB = this.neighborMap[edgeType+"_"+neighbor[j]];
-						for(var k=0;k<arrA.length;k++){
-							if(neighbor.indexOf(arrA[k])>-1){
-								Nv++;
+			if(neighbor!=undefined &&neighbor.length>1){
+				for(var i=0;i<neighbor.length;i++){
+					for(var j=0;j<neighbor.length;j++){
+						//if its not itself
+						if(neighbor[i]!=neighbor[j]){
+							var arrA = this.neighborMap[edgeType+"_"+neighbor[i]];
+							if(arrA!=undefined){
+								if(arrA.indexOf(neighbor[j])>-1){
+									Nv++;
+								}
 							}
-						}
-						for(var k=0;k<arrB.length;k++){
-							if(neighbor.indexOf(arrB[k])>-1){
-								Nv++;
-							}
+							
 						}
 					}
 				}
-			}
-			if(this.directed){
-				cc = Nv/(neighbor.length)*(neighbor.length-1);
-			}else{
-				cc = 2*Nv/(neighbor.length)*(neighbor.length-1);
+				if(this.directed){
+					cc = Nv/((neighbor.length)*(neighbor.length-1));
+				}else{
+					cc = Nv/((neighbor.length)*(neighbor.length-1));
+				}
+				//console.log(cc+"="+Nv+"/"+(neighbor.length)+"*"+(neighbor.length-1));
 			}
 			return cc;
 		},
@@ -452,26 +516,22 @@
 			select.html("");
 			select.append("<option value=''></option>")
 			if(vertex){
-				var properties = schemas.result[0].vertex;
+				var properties = this.schemas.result[0].vertex;
 				for(var i=0;i<properties.length;i++){
 					select.append("<option value='"+properties[i].name+"'>"+properties[i].name+"</option>");
 				}
 			}else{
-				var properties = schemas.result[0].edge;
+				var properties = this.schemas.result[0].edge;
 				for(var i=0;i<properties.length;i++){
 					select.append("<option value='"+properties[i].name+"'>"+properties[i].name+"</option>");
 				}
 			}
 		},
-		deleteNEinNetwork: function(){
-			var vertex = false;
-			if($("#classType")[0].options[1].value == schemas.result[0].vertex[0].name){
-				vertex= true;
-			}
-			if($("#rid").val().charAt(0)=='#'){
+		deleteNEinNetwork: function(rid,classType,vertex){
+			if(rid.charAt(0)=='#'){
 				var json = {};
-				json['@rid'] = $("#rid").val();
-				json['@class'] = $("#classType").val();
+				json['@rid'] = rid;
+				json['@class'] = classType;
 				if(vertex){
 					this.deleted.nodes.push(json);
 				}else{
@@ -483,44 +543,37 @@
 				var connectedLinks = [];
 				for(var i=0;i<this.links.length;i++){
 					var connectedLink = this.links[i]
-					if(connectedLink.source['@rid']==$("#rid").val() || connectedLink.target['@rid']==$("#rid").val()){
+					if(connectedLink.source['@rid']==rid || connectedLink.target['@rid']==rid){
 						connectedLinks.push({"@rid":connectedLink['@rid']});
 					}
 				}
-				var removeGraph = {nodes:[{"@rid":$("#rid").val()}],links:connectedLinks};
+				var removeGraph = {nodes:[{"@rid":rid}],links:connectedLinks};
 				this.updateGraph(newGraph,removeGraph)
 			}else{
 				var newGraph = {nodes:[],links:[]}
-				var removeGraph = {nodes:[],links:[{"@rid":$("#rid").val()}]};
+				var removeGraph = {nodes:[],links:[{"@rid":rid}]};
 				this.updateGraph(newGraph,removeGraph)
 			}
 		},
-		createNEinNetwork: function(){
-			var vertex = false;
+		createNEinNetwork: function(rid,classType,vertex,ridfrom,ridto,properties){
 			var json = {};
-			var selectedIndex = $("#classType")[0].selectedIndex;
-			var property = schemas.result[0].edge[selectedIndex-1].properties;
-			if($("#classType")[0].options[1].value == schemas.result[0].vertex[0].name){
-				vertex= true;
-				property = schemas.result[0].vertex[selectedIndex-1].properties;
+			for (var key in properties) {
+				json[key] = properties[key]
 			}
-			for(var i=0;i<property.length;i++){
-				json[property[i].name] = $("#class_"+property[i].name).val();
-			}
-			json['@rid'] = $("#rid").val();
-			json['@class'] = $("#classType").val();
+			json['@rid'] = rid;
+			json['@class'] = classType;
 			if(json['@rid'].charAt(0)=="#"){
 				json['updated'] = true;
 			}
 			if(vertex){
 				var newGraph = {nodes:[json],links:[]}
-				var removeGraph = {nodes:[{"@rid":$("#rid").val()}],links:[]};
+				var removeGraph = {nodes:[{"@rid":rid}],links:[]};
 				this.updateGraph(newGraph,removeGraph)
 			}else{
-				json['source'] = $("#ridfrom").val();
-				json['target'] = $("#ridto").val();
+				json['source'] = ridfrom;
+				json['target'] = ridto;
 				var newGraph = {nodes:[],links:[json]};
-				var removeGraph = {nodes:[],links:[{"@rid":$("#rid").val()}]};
+				var removeGraph = {nodes:[],links:[{"@rid":rid}]};
 				this.updateGraph(newGraph,removeGraph);
 			}
 		},
@@ -538,9 +591,9 @@
 				if(pnode['@rid'].charAt(0)!="#" || (pnode['@rid'].charAt(0)=="#"&&pnode['updated']==true)){
 					//find schema of the updated node
 					if(property.name!=pnode['@class']){
-						for(var j=0;j<schemas.result[0].vertex.length;j++){
-							if(pnode['@class']==schemas.result[0].vertex[j].name){
-								property = schemas.result[0].vertex[j];
+						for(var j=0;j<parent.schemas.result[0].vertex.length;j++){
+							if(pnode['@class']==parent.schemas.result[0].vertex[j].name){
+								property = parent.schemas.result[0].vertex[j];
 								break;
 							}
 						}	
@@ -562,9 +615,9 @@
 				if(plink['@rid'].charAt(0)!="#" || (plink['@rid'].charAt(0)=="#"&&plink['updated']==true)){
 					//find schema of the updated edge
 					if(property.name!=plink['@class']){
-						for(var j=0;j<schemas.result[0].edge.length;j++){
-							if(plink['@class']==schemas.result[0].edge[j].name){
-								property = schemas.result[0].edge[j];
+						for(var j=0;j<parent.schemas.result[0].edge.length;j++){
+							if(plink['@class']==parent.schemas.result[0].edge[j].name){
+								property = parent.schemas.result[0].edge[j];
 								break;
 							}
 						}	
@@ -650,7 +703,7 @@
 					links[i]['target'] = links[i]['target']['@rid'];
 					i++;
 				}
-				json.schemas=schemas;
+				json.schemas=parent.schemas;
 				json.nodes=nodes;
 				json.links=links;
 				var text=JSON.stringify(json);

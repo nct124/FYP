@@ -1,25 +1,57 @@
 var active;
-$( document ).ready(function() {
-	var schemaURL = "http://localhost:2480/function/Testing/classProperty/";
-	$.ajax({
-	url: schemaURL,
-	crossDomain: true,
-	method : "POST",
-	headers: {
-		'Authorization':'Basic cm9vdDpwYXNzd29yZA=='
-	},
-	dataType: 'json',
-	}).done(function(data1) {
-		schemas = data1;
-		console.log("SCHEMA:");
-		console.log(schemas);
+$( document ).ready(function() {	
+	var graph1 = $("#graph1").GraphVisualizer({
+		rdy:function(){
+			var schema = active.schemas.result[0];
+		
+			$("#nodeLabelClassSelect").html("");
+			$("#nodeLabelClassSelect").append("<option value=''></option>");
+			for(var i=0;i<schema.vertex.length;i++){
+				$("#nodeLabelClassSelect").append("<option value='"+i+"'>"+schema.vertex[i].name+"</option>");
+			}
+			$("#nodeLabelClassSelect").on("change",function(){
+				var index = this.options[this.selectedIndex].value;
+				$("#nodeLabelAttributeSelect").html("");
+				$("#nodeLabelAttributeSelect").append("<option value=''></option>");
+				for(var i=0;i<schema.vertex[index].properties.length;i++){
+					$("#nodeLabelAttributeSelect").append("<option value='"+schema.vertex[index].properties[i].name+"'>"+schema.vertex[index].properties[i].name+"</option>");
+				}
+			});
+			$("#nodeLabelAttributeSelect").on('change',function(){
+				var index = document.getElementById("nodeLabelClassSelect").options[document.getElementById("nodeLabelClassSelect").selectedIndex].value;
+				var label = this.options[this.selectedIndex].value;
+				active.options.nodeLabel[schema.vertex[index].name] = label;
+				active.resetGraph();
+			});
+			
+			$("#edgeLabelClassSelect").html("");
+			$("#edgeLabelClassSelect").append("<option value=''></option>");
+			for(var i=0;i<schema.edge.length;i++){
+				$("#edgeLabelClassSelect").append("<option value='"+i+"'>"+schema.edge[i].name+"</option>");
+			}
+			$("#edgeLabelClassSelect").on("change",function(){
+				var index = this.options[this.selectedIndex].value;
+				$("#edgeLabelAttributeSelect").html("");
+				$("#edgeLabelAttributeSelect").append("<option value=''></option>");
+				for(var i=0;i<schema.edge[index].properties.length;i++){
+					$("#edgeLabelAttributeSelect").append("<option value='"+schema.edge[index].properties[i].name+"'>"+schema.edge[index].properties[i].name+"</option>");
+				}
+			});
+			$("#edgeLabelAttributeSelect").on('change',function(){
+				var index = document.getElementById("edgeLabelClassSelect").options[document.getElementById("edgeLabelClassSelect").selectedIndex].value;
+				var label = this.options[this.selectedIndex].value;
+				active.options.edgeLabel[schema.edge[index].name] = label;
+				console.log(active.options.edgeLabel);
+				active.resetGraph();
+			});
+		}
 	});
-	var graph1 = $("#graph1").GraphVisualizer();
 	active = graph1;
 	$("#queryBtn").on("click",function(){
 		var query = $("#query").val();
 		active.queryDatabase(query);
-	})
+	});
+	
 	$("#addBtn").on("click",function(){
 		var newGraph = {nodes:[{name:"newNode","x":300,"y":300,"@rid":Math.floor(Math.random() * (100000 - 1) + 1).toString()}]
 			,links:[]
@@ -27,17 +59,26 @@ $( document ).ready(function() {
 		var removeGraph = {nodes:[],links:[]};
 		active.updateGraph(newGraph,removeGraph)
 	});
+	
 	$("#saveBtn").on("click",function(){
 		active.saveNetwork();
 	});
+	
 	$("#exportBtn").on("click",function(){
 		active.exportNetwork(document.getElementById("exportLink"));
 	});
 	$("#deletebtn").on("click",function(){
-		active.deleteNEinNetwork();
+		var rid = $("#rid").val();
+		var classType = $("#classType").val();
+		var vertex = false;
+		if($("#classType")[0].options[1].value == active.schemas.result[0].vertex[0].name){
+			vertex= true;
+		}
+		active.deleteNEinNetwork(rid,classType,vertex);
 	});
 	$("#classType").on("change",function(){
 		if(this.selectedIndex>0){
+			var schemas = active.schemas;
 			var classProperty;
 			if(this.options[1].value==schemas.result[0].vertex[0].name){
 				classProperty = schemas.result[0].vertex[this.selectedIndex-1].properties; 
@@ -70,6 +111,23 @@ $( document ).ready(function() {
 		reader.readAsText(file);	
 	});
 	$("#CUbtn").on("click",function(){
-		active.createNEinNetwork();
+		var schemas = active.schemas;
+		var rid = $("#rid").val();
+		var classType = $("#classType").val();
+		var vertex = false;
+		var ridto = $("#ridto").val();
+		var ridfrom = $("#ridfrom").val();
+		var properties = {};
+		var selectedIndex = $("#classType")[0].selectedIndex;
+		var property = schemas.result[0].edge[selectedIndex-1].properties;
+		if($("#classType")[0].options[1].value == schemas.result[0].vertex[0].name){
+			vertex= true;
+			property = schemas.result[0].vertex[selectedIndex-1].properties;
+		}
+		for(var i=0;i<property.length;i++){
+			properties[property[i].name] = $("#class_"+property[i].name).val();
+		}
+		active.createNEinNetwork(rid,classType,vertex,ridfrom,ridto,properties);
 	});
+	console.log(active);
 });
