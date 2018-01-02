@@ -1,0 +1,16 @@
+TODO
+1)find better layouts to display graphs properly
+--add options to change types of layouts
+2)allow changing of weight attribute(OK)
+3)update all the maps when the graph is editted(DELETE DONE)
+4)find common json formats of existing graph to be supported by the upload function
+5)add plotting graphs to the functionailities 
+6)add network properties
+--will only be computed when needed
+--add in a computing screen
+7) find a way to display the distance
+--allow choosing of 2 nodes
+--hold ctrl
+8) add undo
+--undo delete,revert back to original values
+9)

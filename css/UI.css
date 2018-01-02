@@ -22,3 +22,7 @@ svg.graph{
 .links path{
 	fill:none;
 }
+#NetD,#NED,#controlpanel{
+	overflow:auto;
+	height:100%;
+}

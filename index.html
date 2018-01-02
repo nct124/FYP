@@ -7,7 +7,9 @@
 	<link rel="stylesheet" href="css/UI.css">
 	<script src="//ajax.googleapis.com/ajax/libs/jquery/1.11.0/jquery.min.js"></script>
 	<script src="//netdna.bootstrapcdn.com/bootstrap/3.1.1/js/bootstrap.min.js"></script>
+	
     <script src="https://d3js.org/d3.v4.min.js"></script>
+	<script src="js/priority_queue.js"></script>
 	<script src="js/orientDBAPI.js"></script>
 	<script src="js/UI.js"></script>
 </head>
@@ -121,7 +123,12 @@
 									<select id="edgeLabelAttributeSelect" class="form-control"></select>
 								</div>
 								<h5>edit attribute to act as weight(give option to select type of edge)</h5>
-								<h5>edit attribute to act as weight(give option to select type of edge)</h5>
+								<div class="form-group">
+									<label for="edgeClassSelect">Edge Class:</label>
+									<select id="edgeClassSelect" class="form-control"></select>
+									<label for="edgeWeightageAttributeSelect">Edge Weightage Attribute:</label>
+									<select id="edgeWeightageAttributeSelect" class="form-control"></select>
+								</div>
 							</div>
 						</div>
 					</div>

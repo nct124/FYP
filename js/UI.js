@@ -3,7 +3,6 @@ $( document ).ready(function() {
 	var graph1 = $("#graph1").GraphVisualizer({
 		rdy:function(){
 			var schema = active.schemas.result[0];
-		
 			$("#nodeLabelClassSelect").html("");
 			$("#nodeLabelClassSelect").append("<option value=''></option>");
 			for(var i=0;i<schema.vertex.length;i++){
@@ -26,8 +25,10 @@ $( document ).ready(function() {
 			
 			$("#edgeLabelClassSelect").html("");
 			$("#edgeLabelClassSelect").append("<option value=''></option>");
+			$("#edgeClassSelect").append("<option value=''></option>");
 			for(var i=0;i<schema.edge.length;i++){
 				$("#edgeLabelClassSelect").append("<option value='"+i+"'>"+schema.edge[i].name+"</option>");
+				$("#edgeClassSelect").append("<option value='"+i+"'>"+schema.edge[i].name+"</option>");
 			}
 			$("#edgeLabelClassSelect").on("change",function(){
 				var index = this.options[this.selectedIndex].value;
@@ -44,6 +45,23 @@ $( document ).ready(function() {
 				console.log(active.options.edgeLabel);
 				active.resetGraph();
 			});
+			
+			
+			$("#edgeClassSelect").on("change",function(){
+				var index = this.options[this.selectedIndex].value;
+				$("#edgeWeightageAttributeSelect").html("");
+				$("#edgeWeightageAttributeSelect").append("<option value=''></option>");
+				for(var i=0;i<schema.edge[index].properties.length;i++){
+					$("#edgeWeightageAttributeSelect").append("<option value='"+schema.edge[index].properties[i].name+"'>"+schema.edge[index].properties[i].name+"</option>");
+				}
+			});
+			$("#edgeWeightageAttributeSelect").on('change',function(){
+				var index = document.getElementById("edgeClassSelect").options[document.getElementById("edgeClassSelect").selectedIndex].value;
+				var label = this.options[this.selectedIndex].value;
+				active.options.weight[schema.edge[index].name] = label;
+				console.log(active.options.edgeLabel);
+				active.resetGraph();
+			});
 		}
 	});
 	active = graph1;
@@ -53,7 +71,7 @@ $( document ).ready(function() {
 	});
 	
 	$("#addBtn").on("click",function(){
-		var newGraph = {nodes:[{name:"newNode","x":300,"y":300,"@rid":Math.floor(Math.random() * (100000 - 1) + 1).toString()}]
+		var newGraph = {nodes:[{"@class":"","x":300,"y":300,"@rid":Math.floor(Math.random() * (100000 - 1) + 1).toString()}]
 			,links:[]
 		}
 		var removeGraph = {nodes:[],links:[]};

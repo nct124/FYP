@@ -10,9 +10,12 @@
             colorGroup:'@class',
 			nodeLabel:{},
 			edgeLabel:{},
+			weight:{},
 			IDlink:"@rid",
 			schemaURL:"http://localhost:2480/function/Testing/classProperty/",
-			rdy:function(){}
+			rdy:function(){},
+			nodeClick:function(){},
+			edgeClick:function(){}
         };
 		$.extend(this.options, options);
 		this.nodes = [];
@@ -148,6 +151,59 @@
 				
 			}
 		},
+		shortestPath: function(startRID,edgeType){
+			var dist = {};
+			var pres = {};
+			var visited = {};
+			var queue = new BinaryHeap(
+			  function(element) { return element.weight; },
+			  function(element) { return element.rid; },
+			  'weight'
+			);
+			dist[startRID] = 0;
+			queue.push({rid:startRID,weight:dist[startRID]})
+			while(queue.size()>0){
+				//dequeue smallest node
+				var current = queue.pop().rid;
+				visited[current] = true;
+				var neighbor = this.neighborMap[edgeType+"_"+current];
+				for(n in neighbor){
+					var ne = neighbor[n];
+					var weight = 1;
+					if(this.options.weight[edgeType]!=undefined && this.options.weight[edgeType]!=""){
+						var edge = getEdge(current,ne,edgeType,this.nodeMap,this.edgeMap)
+						weight = parseInt(edge[this.options.weight[edgeType]]);
+					}
+					if(visited[ne]==undefined && ( dist[ne]==undefined || (dist[ne]> (dist[current]+weight)))){
+						dist[ne] = dist[current]+weight;
+						pres[ne] = current;
+						//update neighbor node priority ie remove and add neighbor with new weightage
+						queue.decreaseKey(ne,dist[ne]);
+					}
+				}
+			}
+			return {dist:dist,pres:pres};
+		},
+		BFS: function(startRID,edgeType,f){
+			var visited = {};
+			visited[startRID] = true;
+			var queue = [];
+			queue.push(startRID);
+			while(queue.length>0){
+				var current = queue.shift();
+				//add neighbor into queue
+				var neighbors = this.neighborMap[edgeType+"_"+current];
+				if(neighbors!=undefined){
+					for(var i=0;i<neighbors.length;i++){
+						if(visited[neighbors[i]]==undefined){
+							visited[neighbors[i]] = true;
+							queue.push(neighbors[i]);
+						}
+					}
+				}
+			}
+			return visited;
+		},
         displayGraph: function () {
 			//display network in SVG
 			var parent = this;
@@ -163,11 +219,7 @@
 				return d['@rid'];
 			})
 			.attr("stroke-width", function(d) { 
-				if(parent.options.weight){
-					return d[parent.options.weight]; 
-				}else{
-					return 2;
-				}
+				return 2;
 			});
 			if(this.directed){
 				this.link.style('marker-end', function(d) { return 'url(#endarrow)'; });
@@ -305,6 +357,8 @@
 				x = $(this).attr("x")
 			}
 			$(".hover circle[cx='"+x+"']").attr("visibility","visible");
+			
+			
 		},
 		mouseout: function (node,index){
 			var x = $(this).attr("cx")
@@ -372,7 +426,7 @@
 					$(".nodes circle[rid='"+rid+"']").attr("fill", "red");
 				},function(){
 					var rid = $(nodekey+" tr.source td:nth-child(2)").html();
-					$(".nodes circle[rid='"+rid+"']").attr("fill", "#1f77b4");
+					$(".nodes circle[rid='"+rid+"']").attr("fill",parent.color(parent.nodeMap[rid][parent.options.colorGroup]));
 				});
 				$(nodekey+" tr.target")
 				.hover(function(){
@@ -380,8 +434,15 @@
 					$(".nodes circle[rid='"+rid+"']").attr("fill", "red");
 				},function(){
 					var rid = $(nodekey+" tr.target td:nth-child(2)").html();
-					$(".nodes circle[rid='"+rid+"']").attr("fill", "#1f77b4");
+					$(".nodes circle[rid='"+rid+"']").attr("fill",parent.color(parent.nodeMap[rid][parent.options.colorGroup]));
 				});
+				//connected graph
+				for(var key in parent.visited){
+					//set back previously editted nodes
+					if(parent.nodeMap[key]){
+						$("circle[rid='"+key+"']").attr("fill",parent.color(parent.nodeMap[key][parent.options.colorGroup]));
+					}
+				}
 			});
 			return edges;
 		},
@@ -430,10 +491,7 @@
 					}else{
 						$("#CUbtn").val("Create");
 						$("#deletebtn").css("display","none");
-					}
-					//compute Clustering coefficient
-					var cc = parent.calCC(node,"follows");
-					
+					}					
 					//load metrics for the node
 					var nodekey = "#NED .table";
 					$(nodekey).html("");
@@ -444,9 +502,26 @@
 						}
 						if(node['out_'+parent.schemas.result[0].edge[i].name]!=undefined){
 							$(nodekey).append("<tr><td>"+parent.schemas.result[0].edge[i].name+" out Degree</td><td>"+node['out_'+parent.schemas.result[0].edge[i].name].length+"</td></tr>");
+							$(nodekey).append("<tr><td>"+parent.schemas.result[0].edge[i].name+" CC</td><td>"+parent.calCC(node,parent.schemas.result[0].edge[i].name)+"</td></tr>");
 						}
-						$(nodekey).append("<tr><td>"+parent.schemas.result[0].edge[i].name+" CC</td><td>"+cc+"</td></tr>");
-					}					
+					}
+					//connected graph
+					for(var key in parent.visited){
+						//set back previously editted nodes
+						if(parent.nodeMap[key]){
+							$("circle[rid='"+key+"']").attr("fill",parent.color(parent.nodeMap[key][parent.options.colorGroup]));
+						}
+					}
+					parent.visited = parent.BFS(node['@rid'],"follows");
+					for(var key in parent.visited){
+						//highlight new nodes
+						if(parent.nodeMap[key]){
+							$("circle[rid='"+key+"']").attr("fill","black");
+						}
+					}
+					
+					//distance
+					var distance = parent.shortestPath(node['@rid'],"follows");
 				}
 			});
 			return nodes;
@@ -501,7 +576,6 @@
 			this.nodes = this.nodes.concat(newGraph.nodes);
 			this.links = this.links.concat(newGraph.links);
 			
-			
 			this.resetGraph();
 		},
 		resetGraph:function(){
@@ -549,10 +623,72 @@
 				}
 				var removeGraph = {nodes:[{"@rid":rid}],links:connectedLinks};
 				this.updateGraph(newGraph,removeGraph)
+				//update maps
+				var schema = this.schemas.result[0];
+				for(var i=0;i<schema.edge.length;i++){
+					for(edge in this.nodeMap[rid]["in_"+schema.edge[i].name]){
+						//delete node's neighbor of the deleted edge
+						var out_id = this.edgeMap[this.nodeMap[rid]["in_"+schema.edge[i].name][edge]]['out'];
+						var index = this.nodeMap[out_id]["out_"+schema.edge[i].name].indexOf(this.nodeMap[rid]["in_"+schema.edge[i].name][edge]);
+						this.nodeMap[out_id]["out_"+schema.edge[i].name].splice(index,1);
+						//delete neighbor in neighborMap
+						delete this.neighborMap[schema.edge[i].name+"_"+rid];
+						if(this.neighborMap[schema.edge[i].name+"_"+out_id]!=undefined){
+							index = this.neighborMap[schema.edge[i].name+"_"+out_id].indexOf(rid);
+							if(index>-1){
+								this.neighborMap[schema.edge[i].name+"_"+out_id].splice(index,1)
+							}
+						}
+						//delete edge in edge map
+						delete this.edgeMap[this.nodeMap[rid]["in_"+schema.edge[i].name][edge]]
+					}
+					for(edge in this.nodeMap[rid]["out_"+schema.edge[i].name]){
+						//delete node's neighbor of the deleted edge
+						var in_id = this.edgeMap[this.nodeMap[rid]["out_"+schema.edge[i].name][edge]]['in'];
+						var index = this.nodeMap[in_id]["in_"+schema.edge[i].name].indexOf(this.nodeMap[rid]["out_"+schema.edge[i].name][edge]);
+						this.nodeMap[in_id]["in_"+schema.edge[i].name].splice(index,1);
+						//delete neighbor in neighborMap
+						delete this.neighborMap[schema.edge[i].name+"_"+rid];
+						if(this.neighborMap[schema.edge[i].name+"_"+in_id]!=undefined){
+							index = this.neighborMap[schema.edge[i].name+"_"+in_id].indexOf(rid);
+							if(index>-1){
+								this.neighborMap[schema.edge[i].name+"_"+in_id].splice(index,1)
+							}
+						}
+						//delete edge in edge map
+						delete this.edgeMap[this.nodeMap[rid]["out_"+schema.edge[i].name][edge]]
+					}
+				}
+				//delete node itself
+				delete this.nodeMap[rid]				
 			}else{
 				var newGraph = {nodes:[],links:[]}
 				var removeGraph = {nodes:[],links:[{"@rid":rid}]};
 				this.updateGraph(newGraph,removeGraph)
+				
+				//update map
+				//delete neighbor in nodeMap
+				var index = this.nodeMap[this.edgeMap[rid].in]["in_"+this.edgeMap[rid]['@class']].indexOf(rid);
+				if(index>-1){
+					this.nodeMap[this.edgeMap[rid].in]["in_"+this.edgeMap[rid]['@class']].splice(index,1);
+				}
+				index = this.nodeMap[this.edgeMap[rid].out]["out_"+this.edgeMap[rid]['@class']].indexOf(rid);
+				if(index>-1){
+					this.nodeMap[this.edgeMap[rid].out]["out_"+this.edgeMap[rid]['@class']].splice(index,1);
+				}
+				//delete neighbor in neighborMap
+				index = this.neighborMap[this.edgeMap[rid]['@class']+"_"+this.edgeMap[rid].out].indexOf(this.edgeMap[rid].in)
+				if(index>-1){
+					this.neighborMap[this.edgeMap[rid]['@class']+"_"+this.edgeMap[rid].out].splice(index,1);
+				}
+				if(this.directed==false){
+					index = this.neighborMap[this.edgeMap[rid]['@class']+"_"+this.edgeMap[rid].in].indexOf(this.edgeMap[rid].out)
+					if(index>-1){
+						this.neighborMap[this.edgeMap[rid]['@class']+"_"+this.edgeMap[rid].in].splice(index,1);
+					}
+				}
+				//delete edge itself
+				delete this.edgeMap[rid]
 			}
 		},
 		createNEinNetwork: function(rid,classType,vertex,ridfrom,ridto,properties){
@@ -754,6 +890,16 @@
 		if (!d3.event.active) this.simulation.alphaTarget(0);
 		d.fx = null;
 		d.fy = null;
+	}
+	function getEdge(srid,drid,edgeType,nodeMap,edgeMap) {
+		var edges = nodeMap[srid]["out_"+edgeType];
+		for(e in edges){
+			var edge = edgeMap[edges[e]];
+			if(edge['in']==drid){
+				return edge;
+			}
+		}
+		return undefined;
 	}
     /*
      * Plugin wrapper, preventing against multiple instantiations and
