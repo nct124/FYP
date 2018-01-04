@@ -148,4 +148,28 @@ $( document ).ready(function() {
 		active.createNEinNetwork(rid,classType,vertex,ridfrom,ridto,properties);
 	});
 	console.log(active);
+	$("#degree").on("click",function(){
+		var data = {};//{{x:4,y:2},{x:5,y:5}};
+		var nodes = active.nodeMap;
+		var edgeType = "follows"
+		for(i in nodes){
+			var node = nodes[i];
+			var degree = 0;
+			if(node['out_'+edgeType]){
+				degree = node['out_'+edgeType].length;
+			}
+			if(data[degree]==undefined){
+				data[degree]=0;
+			}
+			data[degree]++;
+		}
+		console.log(data);
+		var realData = [];
+		for(i in data){
+			var node = data[i];
+			realData.push({x:i,y:node});
+		}
+		var graph = new HistogramGraph("#graphModal",realData,"x","y");
+		graph.plot();
+	});
 });

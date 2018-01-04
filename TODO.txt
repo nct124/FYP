@@ -1,16 +1,27 @@
 TODO
-1)find better layouts to display graphs properly
---add options to change types of layouts
+===DONE===
+
 2)allow changing of weight attribute(OK)
-3)update all the maps when the graph is editted(DELETE DONE)
-4)find common json formats of existing graph to be supported by the upload function
-5)add plotting graphs to the functionailities 
-6)add network properties
+3)update all the maps when the graph is editted(DELETE DONE)(CREATE DONE)(SAVE DONE)
+--node will only count if its created(createNEinNetwork)
+9)clear the nodes and edge properly
+--somewhere there is a bug
+
+===NOT DONE===
+
+1)find better layouts to display graphs properly(FRIDAY)
+--add options to change types of layouts
+4)find common json formats of existing graph to be supported by the upload function(SAT)
+5)add plotting graphs to the functionailities(SUN)
+--degree distribution(DONE)
+--CC distribution
+--add in Random Network/Scale Free Network distribution
+6)add network properties(SUN)
 --will only be computed when needed
 --add in a computing screen
-7) find a way to display the distance
+7) find a way to display the distance(LATER)
 --allow choosing of 2 nodes
 --hold ctrl
-8) add undo
+8) add undo(SEE HOW)
 --undo delete,revert back to original values
-9)
+

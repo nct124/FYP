@@ -87,6 +87,8 @@
 			this.deleted.nodes = [];
 			this.deleted.links = [];
 			this.neighborMap = {};
+			this.nodeMap = {};
+			this.edgeMap = {};
 			var data = this.data.result;
 			for(var i=0;i<data.length;i++){
 				var checkVertex = false;
@@ -410,9 +412,11 @@
 				if(edge['@rid'].charAt(0)=="#"){
 					$("#CUbtn").val("Update");
 					$("#deletebtn").css("display","block");
+					$("#classType").attr("disabled","true");
 				}else{
 					$("#CUbtn").val("Create");
 					$("#deletebtn").css("display","none");
+					$("#classType").removeAttr("disabled");
 				}
 				//load metrics for the node
 				var nodekey = "#NED .table";
@@ -557,6 +561,7 @@
 		},
 		updateGraph: function (newGraph,removeGraph) {
 			//refresh network in SVG
+			
 			for(var i=0;i<this.nodes.length;i++){
 				for(var j=0;j<removeGraph.nodes.length;j++){
 					if(this.nodes[i]["@rid"]==removeGraph.nodes[j]['@rid']){
@@ -705,12 +710,32 @@
 				var newGraph = {nodes:[json],links:[]}
 				var removeGraph = {nodes:[{"@rid":rid}],links:[]};
 				this.updateGraph(newGraph,removeGraph)
+				//update map
+				this.nodeMap[rid] = json;
 			}else{
 				json['source'] = ridfrom;
 				json['target'] = ridto;
+				json['in'] = ridto;
+				json['out'] = ridfrom;
 				var newGraph = {nodes:[],links:[json]};
 				var removeGraph = {nodes:[],links:[{"@rid":rid}]};
 				this.updateGraph(newGraph,removeGraph);
+				//update map
+				this.edgeMap[rid] = json;
+				//nodemap
+				if(this.nodeMap[ridfrom]['out_'+classType]==undefined){
+					this.nodeMap[ridfrom]['out_'+classType] = [];
+				}
+				this.nodeMap[ridfrom]['out_'+classType].push(rid);
+				if(this.nodeMap[ridto]['in_'+classType]==undefined){
+					this.nodeMap[ridto]['in_'+classType] = [];
+				}
+				this.nodeMap[ridto]['in_'+classType].push(rid);
+				//neighborMap
+				if(this.neighborMap[classType+"_"+ridfrom]==undefined){
+					this.neighborMap[classType+"_"+ridfrom] = [];
+				}
+				this.neighborMap[classType+"_"+ridfrom].push(ridto);
 			}
 		},
 		saveNetwork: function(){
@@ -772,6 +797,7 @@
 			}
 			var str = JSON.stringify(jsonArray);
 			ajax(functionURL,str,function(result){
+				var schema = parent.schemas.result[0];
 				//update UI after updating the database
 				var nodeID = result.result[0]["createdNodeRID"];
 				var linkID = result.result[0]["createdLinkRID"];
@@ -779,6 +805,8 @@
 				var newLinks = [];
 				var removeNodes = [];
 				var removeLinks = [];
+				
+				//var tempneighborMap = {};
 				for(var i=0;i<parent.nodes.length;i++){
 					var pnode = parent.nodes[i];
 					if(nodeID[pnode['@rid']]){
@@ -786,19 +814,62 @@
 						nnode['@rid'] = nodeID[pnode['@rid']];
 						newNodes.push(nnode);
 						removeNodes.push({"@rid":pnode['@rid']});
+						//update map
+						parent.nodeMap[nnode['@rid']] = nnode;
+						delete parent.nodeMap[pnode['@rid']];
 					}
 				}
+				//console.log(tempneighborMap);
 				for(var i=0;i<parent.links.length;i++){
 					var plink = parent.links[i];
 					if(linkID[plink['@rid']]){
 						var nlink = jQuery.extend(true, {}, plink);
 						nlink['@rid'] = linkID[plink['@rid']][0];
 						if(nlink['source']['@rid'].charAt(0)!='#'){
+							//update map
+							if(parent.neighborMap[nlink["@class"]+"_"+nlink['source']['@rid']]!=undefined){
+								var index = parent.neighborMap[nlink["@class"]+"_"+nlink['source']['@rid']].indexOf(nlink['target']['@rid']);
+								if(index>-1){
+									//update neighborMap
+									parent.neighborMap[nlink["@class"]+"_"+nlink['source']['@rid']].splice(index,1);
+									parent.neighborMap[nlink["@class"]+"_"+nlink['source']['@rid']].push(nodeID[nlink['target']['@rid']]);
+									//update inner nodeMap linking
+									index = parent.nodeMap[nodeID[nlink['source']['@rid']]]['out_'+nlink["@class"]].indexOf(plink['@rid']);
+									parent.nodeMap[nodeID[nlink['source']['@rid']]]['out_'+nlink["@class"]].splice(index,1);
+									parent.nodeMap[nodeID[nlink['source']['@rid']]]['out_'+nlink["@class"]].push(nlink['@rid']);
+									index = parent.nodeMap[nodeID[nlink['target']['@rid']]]['in_'+nlink["@class"]].indexOf(plink['@rid']);
+									parent.nodeMap[nodeID[nlink['target']['@rid']]]['in_'+nlink["@class"]].splice(index,1);
+									parent.nodeMap[nodeID[nlink['target']['@rid']]]['in_'+nlink["@class"]].push(nlink['@rid']);
+								}
+								parent.neighborMap[nlink["@class"]+"_"+nodeID[nlink['source']['@rid']]] = parent.neighborMap[nlink["@class"]+"_"+nlink['source']['@rid']];
+								delete parent.neighborMap[nlink["@class"]+"_"+nlink['source']['@rid']];
+							}
+							nlink['out'] = nodeID[nlink['source']['@rid']];
 							nlink['source'] = nodeID[nlink['source']['@rid']];
+							
 						}else{
 							nlink['source'] = nlink['source']['@rid'];
 						}
 						if(nlink['target']['@rid'].charAt(0)!='#'){
+							//update map
+							if(parent.neighborMap[nlink["@class"]+"_"+nlink['target']['@rid']]!=undefined){
+								var index = parent.neighborMap[nlink["@class"]+"_"+nlink['target']['@rid']].indexOf(nlink['source']['@rid']);
+								if(index>-1){
+									//update neighborMap
+									parent.neighborMap[nlink["@class"]+"_"+nlink['target']['@rid']].splice(index,1);
+									parent.neighborMap[nlink["@class"]+"_"+nlink['target']['@rid']].push(nodeID[nlink['source']['@rid']]);
+									//update inner nodeMap linking
+									index = parent.nodeMap[nodeID[nlink['target']['@rid']]]['in_'+nlink["@class"]].indexOf(plink['@rid']);
+									parent.nodeMap[nodeID[nlink['target']['@rid']]]['in_'+nlink["@class"]].splice(index,1);
+									parent.nodeMap[nodeID[nlink['target']['@rid']]]['in_'+nlink["@class"]].push(nlink['@rid']);
+									index = parent.nodeMap[nodeID[nlink['source']['@rid']]]['out_'+nlink["@class"]].indexOf(plink['@rid']);
+									parent.nodeMap[nodeID[nlink['source']['@rid']]]['out_'+nlink["@class"]].splice(index,1);
+									parent.nodeMap[nodeID[nlink['source']['@rid']]]['out_'+nlink["@class"]].push(nlink['@rid']);
+								}
+								parent.neighborMap[nlink["@class"]+"_"+nodeID[nlink['target']['@rid']]] = parent.neighborMap[nlink["@class"]+"_"+nlink['target']['@rid']];
+								delete parent.neighborMap[nlink["@class"]+"_"+nlink['target']['@rid']];
+							}
+							nlink['in'] = nodeID[nlink['target']['@rid']];
 							nlink['target'] = nodeID[nlink['target']['@rid']];
 						}else{
 							nlink['target'] = nlink['target']['@rid'];
@@ -806,6 +877,9 @@
 						
 						newLinks.push(nlink);
 						removeLinks.push({"@rid":plink['@rid']});
+						//update map
+						parent.edgeMap[nlink['@rid']] = nlink;
+						delete parent.edgeMap[plink['@rid']];
 					}
 				}
 				var newGraph = {nodes:newNodes,links:newLinks}
