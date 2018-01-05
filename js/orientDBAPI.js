@@ -34,6 +34,7 @@
 			parent.schemas = result;
 			options.rdy();
 		})
+		enableAnimation();
     };
 	
     Plugin.prototype = {
@@ -79,6 +80,18 @@
 				.attr('d', 'M0,-5L10,0L0,5')
 				.attr('fill', '#000');
         },
+		clearGraph: function () {
+			this.nodes = [];
+			this.links = [];
+			this.deleted = {};
+			this.deleted.nodes = [];
+			this.deleted.links = [];
+			this.neighborMap = {};
+			this.nodeMap = {};
+			this.edgeMap = {};
+			this.svg.selectAll("*").remove();
+			this.init();
+		},
 		loadData: function () {
 			//load network into plugin
 			this.nodes = [];
@@ -162,6 +175,8 @@
 			  function(element) { return element.rid; },
 			  'weight'
 			);
+			var longestDistance = 0;
+			var longestDistanceNode = "";
 			dist[startRID] = 0;
 			queue.push({rid:startRID,weight:dist[startRID]})
 			while(queue.size()>0){
@@ -178,13 +193,17 @@
 					}
 					if(visited[ne]==undefined && ( dist[ne]==undefined || (dist[ne]> (dist[current]+weight)))){
 						dist[ne] = dist[current]+weight;
+						if(dist[ne]>longestDistance){
+							longestDistance = dist[ne];
+							longestDistanceNode = ne;
+						}
 						pres[ne] = current;
 						//update neighbor node priority ie remove and add neighbor with new weightage
 						queue.decreaseKey(ne,dist[ne]);
 					}
 				}
 			}
-			return {dist:dist,pres:pres};
+			return {dist:dist,pres:pres,longestDistance:{dist:longestDistance,node:longestDistanceNode}};
 		},
 		BFS: function(startRID,edgeType,f){
 			var visited = {};
@@ -302,22 +321,26 @@
 			this.simulation
 			.nodes(this.nodes)
 			.on("tick", function(){
-				parent.link.attr("d", function(d) {
-					var r = 150;
-					var dr = r/d.linknum;  //linknum is defined above
-					return "M" + d.source.x + "," + d.source.y + 
-					 "A" + dr + "," + dr + " 0 0,1 " + d.target.x + "," + d.target.y;
-					//A rx,ry xAxisRotate LargeArcFlag,SweepFlag x,y"
-				});
-				parent.node
-				.attr("cx", function(d) { return d.x; })
-				.attr("cy", function(d) { return d.y; });
-				parent.nodeText
-				.attr("x", function(d) { return d.x; })
-				.attr("y", function(d) { return d.y; });
-				parent.hoverPoints
-				.attr("cx", function(d) { return d.x; })
-				.attr("cy", function(d) { return d.y+(20) });
+				if(parent.animate == true){
+					parent.link.attr("d", function(d) {
+						var r = 150;
+						var dr = r/d.linknum;  //linknum is defined above
+						return "M" + d.source.x + "," + d.source.y + 
+						 "A" + dr + "," + dr + " 0 0,1 " + d.target.x + "," + d.target.y;
+						//A rx,ry xAxisRotate LargeArcFlag,SweepFlag x,y"
+					});
+					parent.node
+					.attr("cx", function(d) { return d.x; })
+					.attr("cy", function(d) { return d.y; });
+					parent.nodeText
+					.attr("x", function(d) { return d.x; })
+					.attr("y", function(d) { return d.y; });
+					parent.hoverPoints
+					.attr("cx", function(d) { return d.x; })
+					.attr("cy", function(d) { return d.y+(20) });
+					parent.animate = false;
+				}
+				
 			});
 
 			this.simulation.force("link")
@@ -463,6 +486,27 @@
 						var removeGraph = {nodes:[],links:[]}
 						parent.updateGraph(newGraph,removeGraph);
 					}
+				}else if(d3.event.ctrlKey){
+					var srcID = parent.clickedNode["source"];
+					var destID = node["@rid"];
+					var allDistance = parent.shortestPath(srcID,"follows");
+					var distance = allDistance["dist"][destID];
+					if(distance!=undefined){
+						var path = destID;
+						var current = allDistance["pres"][destID];
+						while(current!=srcID){
+							path = current+"->"+path;
+							current = allDistance["pres"][current];
+						}
+						path = current+"->"+path;
+						console.log("srcID:"+srcID);
+						console.log("destID:"+destID);
+						console.log("Distance:"+distance);
+						console.log("path:"+path);
+					}else{
+						console.log("selected node is not reachable");
+					}
+					
 				}else{
 					//load values for editting
 					parent.loadClass(true);
@@ -525,10 +569,89 @@
 					}
 					
 					//distance
-					var distance = parent.shortestPath(node['@rid'],"follows");
+					parent.clickedNode = {source:node['@rid']};
 				}
 			});
 			return nodes;
+		},
+		getCloseness: function(edgeType){
+			closenessArray = {};
+			for(nodeID in this.nodeMap){
+				var distance = this.shortestPath(nodeID,edgeType);
+				var sum = 0;
+				var num = 0;
+				for(node in distance.dist){
+					sum+=distance.dist[node];
+					num++;
+				}
+				var closeness = (num-1)/sum; 
+				closenessArray[nodeID] = closeness;
+			}
+			return closenessArray;
+		},
+		getCCDistribution: function(edgeType){
+			var data = {};//{{x:4,y:2},{x:5,y:5}};
+			var nodes = active.nodeMap;
+			for(i in nodes){
+				var node = nodes[i];
+				var CC = this.calCC(node,edgeType);
+				console.log(CC);
+				if(data[CC]==undefined){
+					data[CC]=0;
+				}
+				data[CC]++;
+			}
+			var realData = [];
+			for(i in data){
+				var node = data[i];
+				realData.push({x:i,y:node});
+			}
+			return realData;
+		},
+		getDiameter: function(edgeType){
+			var ld = 0;
+			var ldp;
+			var lds = "";
+			
+			for(nodeID in this.nodeMap){
+				var distance = this.shortestPath(nodeID,edgeType);
+				if(distance.longestDistance.dist>ld){
+					ld = distance.longestDistance.dist;
+					ldp = distance;
+					lds = nodeID;
+				}
+			}
+			var path = [ldp.longestDistance.node];
+			var pres = ldp.pres;
+			var current = pres[ldp.longestDistance.node];
+			while(current!=lds){
+				path.unshift(current);
+				current = pres[current];
+			}
+			path.unshift(current);
+			return {dist:ld,path:path};
+			
+		},
+		getDegreeDistribution: function(edgeType){
+			var data = {};//{{x:4,y:2},{x:5,y:5}};
+			var nodes = active.nodeMap;
+			for(i in nodes){
+				var node = nodes[i];
+				var degree = 0;
+				if(node['out_'+edgeType]){
+					degree = node['out_'+edgeType].length;
+				}
+				if(data[degree]==undefined){
+					data[degree]=0;
+				}
+				data[degree]++;
+			}
+			var realData = [];
+			for(i in data){
+				var node = data[i];
+				realData.push({x:i,y:node});
+			}
+			return realData;
 		},
 		calCC: function(node,edgeType){
 			var cc = 0;
@@ -974,6 +1097,9 @@
 			}
 		}
 		return undefined;
+	}
+	function enableAnimation(){
+		setTimeout(function(){ active.animate=true;enableAnimation(); }, 5);
 	}
     /*
      * Plugin wrapper, preventing against multiple instantiations and

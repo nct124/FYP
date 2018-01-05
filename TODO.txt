@@ -1,16 +1,16 @@
 TODO
 ===DONE===
-
 2)allow changing of weight attribute(OK)
 3)update all the maps when the graph is editted(DELETE DONE)(CREATE DONE)(SAVE DONE)
 --node will only count if its created(createNEinNetwork)
-9)clear the nodes and edge properly
---somewhere there is a bug
+9)clear the nodes and edge properly(DONE)
+--somewhere there is a bug(DONE)
+
 
 ===NOT DONE===
-
 1)find better layouts to display graphs properly(FRIDAY)
 --add options to change types of layouts
+--optimize displaying
 4)find common json formats of existing graph to be supported by the upload function(SAT)
 5)add plotting graphs to the functionailities(SUN)
 --degree distribution(DONE)
@@ -19,9 +19,13 @@ TODO
 6)add network properties(SUN)
 --will only be computed when needed
 --add in a computing screen
-7) find a way to display the distance(LATER)
---allow choosing of 2 nodes
---hold ctrl
+7) find a way to display the distance(DONE)
+--allow choosing of 2 nodes(OK)
+--hold ctrl(OK)
+--left on how to display the distance and path to take(!)
+--how to determine which edge to use?(!)
 8) add undo(SEE HOW)
 --undo delete,revert back to original values
+10)remove all usage of "out_"/"in_"
+--use only neighborMap
 

@@ -34,6 +34,9 @@
 					<div class="form-group">
 						<input type="button" class="btn btn-default" value="Export" id="exportBtn"/>
 					</div>
+					<div class="form-group">
+						<input type="button" class="btn btn-default" value="Clear" id="clearBtn"/>
+					</div>
 				</form>
 			</div>
 			<div class="row">
@@ -53,7 +56,12 @@
 						<div class="tab-content">
 							<div id="NetD" class="tab-pane fade in active">
 								<h4>Network Details</h4>
-								<input type="button" id="degree" data-toggle="modal" data-target="#graphModal"/>
+								<input type="button" id="degree" data-toggle="modal" value="Degree" data-target="#graphModal"/>
+								<input type="button" id="CC" data-toggle="modal" value="CC" data-target="#graphModal"/>
+								<input type="button" id="" data-toggle="modal" value="Connectedness" data-target="#graphModal"/>
+								<input type="button" id="" data-toggle="modal" value="Betweenness" data-target="#graphModal"/>
+								<input type="button" id="diameter" data-toggle="modal" value="Diameter" data-target="#graphModal"/>
+								<input type="button" id="closeness" data-toggle="modal" value="Closeness" data-target="#graphModal"/>
 							</div>
 							<div id="NED" class="tab-pane fade">
 								<h4>Node/Edge Details</h4>

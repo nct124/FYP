@@ -69,7 +69,9 @@ $( document ).ready(function() {
 		var query = $("#query").val();
 		active.queryDatabase(query);
 	});
-	
+	$("#clearBtn").on("click",function(){
+		active.clearGraph();
+	});
 	$("#addBtn").on("click",function(){
 		var newGraph = {nodes:[{"@class":"","x":300,"y":300,"@rid":Math.floor(Math.random() * (100000 - 1) + 1).toString()}]
 			,links:[]
@@ -148,28 +150,28 @@ $( document ).ready(function() {
 		active.createNEinNetwork(rid,classType,vertex,ridfrom,ridto,properties);
 	});
 	console.log(active);
-	$("#degree").on("click",function(){
-		var data = {};//{{x:4,y:2},{x:5,y:5}};
-		var nodes = active.nodeMap;
-		var edgeType = "follows"
-		for(i in nodes){
-			var node = nodes[i];
-			var degree = 0;
-			if(node['out_'+edgeType]){
-				degree = node['out_'+edgeType].length;
-			}
-			if(data[degree]==undefined){
-				data[degree]=0;
-			}
-			data[degree]++;
-		}
-		console.log(data);
-		var realData = [];
-		for(i in data){
-			var node = data[i];
-			realData.push({x:i,y:node});
-		}
-		var graph = new HistogramGraph("#graphModal",realData,"x","y");
+	$("#degree").on("click",function(){//OK
+		var edgeType = "follows";
+		var degreeDist = active.getDegreeDistribution(edgeType)
+		var graph = new HistogramGraph("#graphModal",degreeDist,"x","y");
 		graph.plot();
 	});
+	$("#diameter").on("click",function(){//OK
+		var edgeType = "follows";
+		var diameter = active.getDiameter(edgeType)
+		console.log(diameter);
+	});
+	$("#CC").on("click",function(){//OK
+		var edgeType = "follows";
+		var CCdist = active.getCCDistribution(edgeType)
+		console.log(CCdist);
+		var graph = new HistogramGraph("#graphModal",CCdist,"x","y");
+		graph.plot();
+	});
+	$("#closeness").on("click",function(){
+		var edgeType = "follows";
+		var closeness = active.getCloseness(edgeType)
+		console.log(closeness);
+	});
+	
 });
