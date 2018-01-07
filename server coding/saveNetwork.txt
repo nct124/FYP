@@ -1,0 +1,110 @@
+//if doesnt exist # in rid = create
+//all #rid records is update
+var resp = {nodes:[],links:[],deleted:[]};
+var json = jsonString;
+var nodes = json.nodes;
+var createdNodeRID = {};
+var createdLinkRID = {};
+for(var i=0;i<nodes.length;i++){
+  	var node = nodes[i];
+  	var fc =  node['@rid'].toString().charAt(0);
+	if(fc!='#'){
+    	//create// track the created ID of the new nodes
+      	var command = "create vertex "+node['@class'];
+      	var attribute = "";
+      	for(key in node){
+          	if(key!='@class'&&key!='@rid'&&key!='updated'){
+              	attribute+=key+"='"+node[key]+"', ";	
+            }
+      	}
+      	if(attribute!=""){
+        	command = command + " set "+attribute;
+        }
+      	command = command.replace(/,\s*$/, "");
+      	var result = db.command(command);
+      	resp.nodes.push(result);
+      	createdNodeRID[node['@rid']] = ""+result.getRecord().field("@rid");
+    }else{
+     	//update 
+      	var rid = node['@rid'];
+  		var command = "Update "+node['@class']+" set ";
+  		var index=0;
+  		for(var key in node){
+      		if(key!='@class'&&key!='@rid'&&key!='updated'){
+        		command+= key+"='"+node[key]+"', ";
+        	}
+        }
+      	command = command.replace(/,\s*$/, "");
+        command+= " where @rid='"+rid+"'";
+        var result = db.command(command);
+      	resp.nodes.push(result);
+    }
+}
+
+var links = json.links;
+for(var i=0;i<links.length;i++){
+  	var link = links[i];
+  	var fc =  link['@rid'].toString().charAt(0);
+  	if(fc.charAt(0)!='#'){//create
+    	var source;
+      	if(link['source'].toString().charAt(0)=='#'){
+        	source= link['source'];
+        }else{
+          	source= createdNodeRID[link['source']];
+        }
+      	
+        var target;
+      	if(link['target'].toString().charAt(0)=='#'){
+        	target= link['target'];
+        }else{
+          	target= createdNodeRID[link['target']];
+        }
+      	
+        var command = "create edge "+link['@class']+" from "+source+" to "+target;
+      	var attribute = ""; 
+        for(key in link){
+            if(key!='@class'&&key!='@rid'&&key!='source'&&key!='target'&&key!='updated'){
+                attribute+=key+"='"+link[key]+"', "
+            }
+        }
+      	if(attribute!=""){
+        	command = command + " set "+attribute;
+        }
+        command = command.replace(/,\s*$/, "");
+        var result = db.command(command);
+      	createdLinkRID[link['@rid']] = result;//""+result.getRecord().field("@rid");
+        resp.links.push(result);
+    }else{//update 
+      	var rid = link['@rid'];
+  		var command = "Update "+link['@class']+" set ";
+  		var index=0;
+  		for(var key in link){
+      		if(key!='@class'&&key!='@rid'&&key!='updated'){
+        		command+= key+"='"+link[key]+"', ";
+        	}
+        }
+      	command = command.replace(/,\s*$/, "");
+        command+= " where @rid='"+rid+"'";
+        var result = db.command(command);
+      	resp.links.push(result);
+    }
+}
+var deletedNodes = json.deleted.nodes;
+for(var i=0;i<deletedNodes.length;i++){
+  	var deletedNode = deletedNodes[i];
+  	var command = "delete vertex "+deletedNode['@rid'];
+    var result = db.command(command);
+  	resp.deleted.push(result);
+}
+var deletedLinks = json.deleted.links;
+for(var i=0;i<deletedLinks.length;i++){
+  	var deletedLink = deletedLinks[i];
+  	var command = "delete edge "+deletedLink['@rid'];
+    var result = db.command(command);
+  	resp.deleted.push(result);
+}
+
+
+resp.createdNodeRID = createdNodeRID;
+resp.createdLinkRID = createdLinkRID;
+return resp;

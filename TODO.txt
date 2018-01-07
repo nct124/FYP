@@ -5,27 +5,41 @@ TODO
 --node will only count if its created(createNEinNetwork)
 9)clear the nodes and edge properly(DONE)
 --somewhere there is a bug(DONE)
-
-
-===NOT DONE===
-1)find better layouts to display graphs properly(FRIDAY)
---add options to change types of layouts
---optimize displaying
-4)find common json formats of existing graph to be supported by the upload function(SAT)
-5)add plotting graphs to the functionailities(SUN)
---degree distribution(DONE)
---CC distribution
---add in Random Network/Scale Free Network distribution
-6)add network properties(SUN)
---will only be computed when needed
---add in a computing screen
+11)bug when changing from directed to undirected graph(DONE)
 7) find a way to display the distance(DONE)
 --allow choosing of 2 nodes(OK)
 --hold ctrl(OK)
---left on how to display the distance and path to take(!)
---how to determine which edge to use?(!)
+--left on how to display the distance and path to take(OK)
+--how to determine which edge to use?(OK)
+===NOT DONE===
+
+===DO NOW===
+5)add plotting graphs to the functionailities
+--degree distribution(DONE)
+--CC distribution(DONE)
+--add in Random Network/Scale Free Network distribution
+--may need to transfer the computing to the server
+6)add network properties
+--will only be computed when needed
+--add in a computing screen
+--may need to transfer the computing to the server
+
+===DO LATER===
+1)find better layouts to display graphs properly
+--add options to change types of layouts
+--optimize displaying
+4)find common json formats of existing graph to be supported by the upload function
+--done 1(show prof to cfm which to do)
+---1.Support all format
+---2.Make the user follow my format
+
+=== may not need to do ===
 8) add undo(SEE HOW)
 --undo delete,revert back to original values
-10)remove all usage of "out_"/"in_"
+10)remove all usage of "out_"/"in_"(DUN THINK NEEDED)
 --use only neighborMap
+
+
+
+
 

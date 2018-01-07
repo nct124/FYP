@@ -1,0 +1,26 @@
+var command;
+db.command("truncate class Members unsafe");
+db.command("truncate class follows unsafe");
+for(var i=1;i<(parseInt(num)+1);i++){
+	command = "create vertex Members set name='"+i+"', email='"+i+"', password='"+i+"'";
+  	db.command(command);
+}
+
+var p = 0.1;
+var query = "select * from members";
+query = db.query(query);
+var num = 0;
+for(var i=0;i<query.length;i++){
+  	for(var j=0;j<query.length;j++){
+      	var node1 = query[i].getIdentity().toString();
+      	var node2 = query[j].getIdentity().toString();
+      	if(node2!=node1){
+          	if(Math.random()<p){
+            	command = "create edge follows from "+node1+" to "+node2+" set weight="+(i+j);
+          		db.command(command);
+              	num++;
+            }
+        }
+	}
+}
+return num;

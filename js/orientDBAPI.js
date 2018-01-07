@@ -11,6 +11,7 @@
 			nodeLabel:{},
 			edgeLabel:{},
 			weight:{},
+			edgeUsed:"",
 			IDlink:"@rid",
 			schemaURL:"http://localhost:2480/function/Testing/classProperty/",
 			rdy:function(){},
@@ -30,10 +31,6 @@
 		this.db = "Testing";
         this.init(options);
 		//get schema
-		ajax(this.options.schemaURL,"",function(result){
-			parent.schemas = result;
-			options.rdy();
-		})
 		enableAnimation();
     };
 	
@@ -44,8 +41,8 @@
             
 			this.svg = d3.select("#"+$(this.element).attr('id'));
 			$.extend(this.options, options);
-			var width = $(this.svg._groups[0][0]).parent().width()//this.svg.attr("width");
-			var height = $(this.svg._groups[0][0]).parent().height()//this.svg.attr("height");
+			var width = $(this.svg._groups[0][0]).parent().width()
+			var height = $(this.svg._groups[0][0]).parent().height()
 			var rect = this.svg.append("rect")
 			.attr("width", width)
 			.attr("height", height)
@@ -105,8 +102,8 @@
 			var data = this.data.result;
 			for(var i=0;i<data.length;i++){
 				var checkVertex = false;
-				for(var j=0;j<this.schemas.result[0].vertex.length;j++){
-					if(data[i]['@class']==this.schemas.result[0].vertex[j].name){
+				for(var j=0;j<this.schemas.vertex.length;j++){
+					if(data[i]['@class']==this.schemas.vertex[j].name){
 						checkVertex = true;
 						break;
 					}
@@ -144,7 +141,26 @@
         },
 		toggleDirected:function(directed){
 			this.directed = directed;
+			this.updateMapping();
 			this.resetGraph();
+		},
+		updateMapping:function(){
+			//clear mapping
+			this.neighborMap = {};
+			//add back mapping
+			for(edgeID in this.edgeMap){
+				var edge = this.edgeMap[edgeID];
+				if(this.neighborMap[edge['@class']+"_"+edge.out]==undefined){
+					this.neighborMap[edge['@class']+"_"+edge.out] = [];
+				}
+				this.neighborMap[edge['@class']+"_"+edge.out].push(edge.in);
+				if(this.directed==false){
+					if(this.neighborMap[edge['@class']+"_"+edge.in]==undefined){
+						this.neighborMap[edge['@class']+"_"+edge.in] = [];
+					}
+					this.neighborMap[edge['@class']+"_"+edge.in].push(edge.out);
+				}
+			}
 		},
 		findDuplicateLinks: function () {
 			var linkHashMap = {};
@@ -205,7 +221,7 @@
 			}
 			return {dist:dist,pres:pres,longestDistance:{dist:longestDistance,node:longestDistanceNode}};
 		},
-		BFS: function(startRID,edgeType,f){
+		BFS: function(startRID,edgeType){
 			var visited = {};
 			visited[startRID] = true;
 			var queue = [];
@@ -412,7 +428,7 @@
 				parent.loadClass(false);
 				var formchild = $("#NED form div:nth-child(1)");
 				formchild.nextAll().remove();
-				var properties = parent.schemas.result[0].edge;
+				var properties = parent.schemas.edge;
 				var classProperty;
 				for(var i=0;i<properties.length;i++){
 					if(properties[i].name==edge['@class']){
@@ -489,15 +505,18 @@
 				}else if(d3.event.ctrlKey){
 					var srcID = parent.clickedNode["source"];
 					var destID = node["@rid"];
-					var allDistance = parent.shortestPath(srcID,"follows");
+					var allDistance = parent.shortestPath(srcID,parent.options.edgeUsed);
 					var distance = allDistance["dist"][destID];
 					if(distance!=undefined){
 						var path = destID;
 						var current = allDistance["pres"][destID];
+						$("circle[rid='"+destID+"']").attr("fill","red");
 						while(current!=srcID){
+							$("circle[rid='"+current+"']").attr("fill","red");
 							path = current+"->"+path;
 							current = allDistance["pres"][current];
 						}
+						$("circle[rid='"+srcID+"']").attr("fill","red");
 						path = current+"->"+path;
 						console.log("srcID:"+srcID);
 						console.log("destID:"+destID);
@@ -513,7 +532,7 @@
 					var formchild = $("#NED form div:nth-child(1)");
 					formchild.nextAll().remove();
 					$("#classType").removeAttr("disabled");
-					var properties = parent.schemas.result[0].vertex;
+					var properties = parent.schemas.vertex;
 					var classProperty;
 					for(var i=0;i<properties.length;i++){
 						if(properties[i].name==node['@class']){
@@ -544,13 +563,13 @@
 					var nodekey = "#NED .table";
 					$(nodekey).html("");
 					$(nodekey).append("<tr><td>ID</td><td>"+node['@rid']+"</td></tr>");
-					for(var i=0;i<parent.schemas.result[0].edge.length;i++){
-						if(node['in_'+parent.schemas.result[0].edge[i].name]!=undefined){
-							$(nodekey).append("<tr><td>"+parent.schemas.result[0].edge[i].name+" in Degree</td><td>"+node['in_'+parent.schemas.result[0].edge[i].name].length+"</td></tr>");
+					for(var i=0;i<parent.schemas.edge.length;i++){
+						if(node['in_'+parent.schemas.edge[i].name]!=undefined){
+							$(nodekey).append("<tr><td>"+parent.schemas.edge[i].name+" in Degree</td><td>"+node['in_'+parent.schemas.edge[i].name].length+"</td></tr>");
 						}
-						if(node['out_'+parent.schemas.result[0].edge[i].name]!=undefined){
-							$(nodekey).append("<tr><td>"+parent.schemas.result[0].edge[i].name+" out Degree</td><td>"+node['out_'+parent.schemas.result[0].edge[i].name].length+"</td></tr>");
-							$(nodekey).append("<tr><td>"+parent.schemas.result[0].edge[i].name+" CC</td><td>"+parent.calCC(node,parent.schemas.result[0].edge[i].name)+"</td></tr>");
+						if(node['out_'+parent.schemas.edge[i].name]!=undefined){
+							$(nodekey).append("<tr><td>"+parent.schemas.edge[i].name+" out Degree</td><td>"+node['out_'+parent.schemas.edge[i].name].length+"</td></tr>");
+							$(nodekey).append("<tr><td>"+parent.schemas.edge[i].name+" CC</td><td>"+parent.calCC(node,parent.schemas.edge[i].name)+"</td></tr>");
 						}
 					}
 					//connected graph
@@ -560,7 +579,7 @@
 							$("circle[rid='"+key+"']").attr("fill",parent.color(parent.nodeMap[key][parent.options.colorGroup]));
 						}
 					}
-					parent.visited = parent.BFS(node['@rid'],"follows");
+					parent.visited = parent.BFS(node['@rid'],parent.options.edgeUsed);
 					for(var key in parent.visited){
 						//highlight new nodes
 						if(parent.nodeMap[key]){
@@ -580,22 +599,24 @@
 				var distance = this.shortestPath(nodeID,edgeType);
 				var sum = 0;
 				var num = 0;
+				var closeness = 0;
 				for(node in distance.dist){
 					sum+=distance.dist[node];
 					num++;
 				}
-				var closeness = (num-1)/sum; 
+				if(sum!=0){
+					closeness = (num-1)/sum; 
+				}
 				closenessArray[nodeID] = closeness;
 			}
 			return closenessArray;
 		},
 		getCCDistribution: function(edgeType){
-			var data = {};//{{x:4,y:2},{x:5,y:5}};
+			var data = {};
 			var nodes = active.nodeMap;
 			for(i in nodes){
 				var node = nodes[i];
 				var CC = this.calCC(node,edgeType);
-				console.log(CC);
 				if(data[CC]==undefined){
 					data[CC]=0;
 				}
@@ -632,24 +653,64 @@
 			return {dist:ld,path:path};
 			
 		},
-		getDegreeDistribution: function(edgeType){
-			var data = {};//{{x:4,y:2},{x:5,y:5}};
-			var nodes = active.nodeMap;
+		getDegreeDistribution: function(edgeType,directed){
+			var data = {};
+			if(directed){
+				data.out = {};
+				data.in = {};
+			}
+			var nodes = this.nodeMap;
 			for(i in nodes){
 				var node = nodes[i];
 				var degree = 0;
-				if(node['out_'+edgeType]){
-					degree = node['out_'+edgeType].length;
+				if(directed){
+					if(node['out_'+edgeType]){
+						degree = node['out_'+edgeType].length;
+					}
+					if(data.out[degree]==undefined){
+						data.out[degree]=0;
+					}
+					data.out[degree]++;
+					degree = 0;
+					if(node['in_'+edgeType]){
+						degree = node['in_'+edgeType].length;
+					}
+					if(data.in[degree]==undefined){
+						data.in[degree]=0;
+					}
+					data.in[degree]++;
+				}else{
+					if(node['out_'+edgeType]){
+						degree += node['out_'+edgeType].length;
+					}
+					if(node['in_'+edgeType]){
+						degree += node['in_'+edgeType].length;
+					}
+					if(data[degree]==undefined){
+						data[degree]=0;
+					}
+					data[degree]++;
 				}
-				if(data[degree]==undefined){
-					data[degree]=0;
-				}
-				data[degree]++;
 			}
-			var realData = [];
-			for(i in data){
-				var node = data[i];
-				realData.push({x:i,y:node});
+			var realData;
+			if(directed){
+				realData = {};
+				realData.in = [];
+				realData.out = [];
+				for(i in data.in){
+					var node = data.in[i];
+					realData.in.push({x:i,y:node});
+				}
+				for(i in data.out){
+					var node = data.out[i];
+					realData.out.push({x:i,y:node});
+				}
+			}else{
+				realData = [];
+				for(i in data){
+					var node = data[i];
+					realData.push({x:i,y:node});
+				}
 			}
 			return realData;
 		},
@@ -718,12 +779,12 @@
 			select.html("");
 			select.append("<option value=''></option>")
 			if(vertex){
-				var properties = this.schemas.result[0].vertex;
+				var properties = this.schemas.vertex;
 				for(var i=0;i<properties.length;i++){
 					select.append("<option value='"+properties[i].name+"'>"+properties[i].name+"</option>");
 				}
 			}else{
-				var properties = this.schemas.result[0].edge;
+				var properties = this.schemas.edge;
 				for(var i=0;i<properties.length;i++){
 					select.append("<option value='"+properties[i].name+"'>"+properties[i].name+"</option>");
 				}
@@ -752,7 +813,7 @@
 				var removeGraph = {nodes:[{"@rid":rid}],links:connectedLinks};
 				this.updateGraph(newGraph,removeGraph)
 				//update maps
-				var schema = this.schemas.result[0];
+				var schema = this.schemas;
 				for(var i=0;i<schema.edge.length;i++){
 					for(edge in this.nodeMap[rid]["in_"+schema.edge[i].name]){
 						//delete node's neighbor of the deleted edge
@@ -859,6 +920,12 @@
 					this.neighborMap[classType+"_"+ridfrom] = [];
 				}
 				this.neighborMap[classType+"_"+ridfrom].push(ridto);
+				if(this.directed==false){
+					if(this.neighborMap[classType+"_"+ridto]==undefined){
+						this.neighborMap[classType+"_"+ridto] = [];
+					}
+					this.neighborMap[classType+"_"+ridto].push(ridfrom);
+				}
 			}
 		},
 		saveNetwork: function(){
@@ -875,9 +942,9 @@
 				if(pnode['@rid'].charAt(0)!="#" || (pnode['@rid'].charAt(0)=="#"&&pnode['updated']==true)){
 					//find schema of the updated node
 					if(property.name!=pnode['@class']){
-						for(var j=0;j<parent.schemas.result[0].vertex.length;j++){
-							if(pnode['@class']==parent.schemas.result[0].vertex[j].name){
-								property = parent.schemas.result[0].vertex[j];
+						for(var j=0;j<parent.schemas.vertex.length;j++){
+							if(pnode['@class']==parent.schemas.vertex[j].name){
+								property = parent.schemas.vertex[j];
 								break;
 							}
 						}	
@@ -899,9 +966,9 @@
 				if(plink['@rid'].charAt(0)!="#" || (plink['@rid'].charAt(0)=="#"&&plink['updated']==true)){
 					//find schema of the updated edge
 					if(property.name!=plink['@class']){
-						for(var j=0;j<parent.schemas.result[0].edge.length;j++){
-							if(plink['@class']==parent.schemas.result[0].edge[j].name){
-								property = parent.schemas.result[0].edge[j];
+						for(var j=0;j<parent.schemas.edge.length;j++){
+							if(plink['@class']==parent.schemas.edge[j].name){
+								property = parent.schemas.edge[j];
 								break;
 							}
 						}	
@@ -920,7 +987,7 @@
 			}
 			var str = JSON.stringify(jsonArray);
 			ajax(functionURL,str,function(result){
-				var schema = parent.schemas.result[0];
+				var schema = parent.schemas;
 				//update UI after updating the database
 				var nodeID = result.result[0]["createdNodeRID"];
 				var linkID = result.result[0]["createdLinkRID"];
@@ -1017,12 +1084,17 @@
 			var json = {query:query};
 			var str = JSON.stringify(json);
 			var parent = this;
-			ajax(functionURL,str,function(data1){
-				parent.svg.select(".wrapper").selectAll("*").remove();
-				parent.data = data1;
-				parent.loadData();
-				parent.displayGraph();
-			});
+			ajax(parent.options.schemaURL,"",function(result){
+				parent.schemas = result.result[0];
+				parent.options.rdy();
+				ajax(functionURL,str,function(data1){
+					parent.svg.select(".wrapper").selectAll("*").remove();
+					parent.data = data1;
+					parent.loadData();
+					parent.displayGraph();
+				});
+			})
+			
 		},
 		exportNetwork: function(a){
 			if(this.nodes&&this.links){
@@ -1054,10 +1126,32 @@
 			}
 		},
 		uploadNetwork: function(json){
-			this.nodes = json.nodes;
-			this.links = json.links;
+			var edgeSchema = [{name:"E",properties:[]}];
+			var vertexSchema = [{name:"V",properties:[]}];
+			this.schemas = {edge:edgeSchema,vertex:vertexSchema}
+			//this.options.edgeUsed = this.schemas.edge[0].name
+			this.options.rdy();
+			this.data = json;
+			this.loadData();
 			this.resetGraph();
-		}
+		},
+		changeNodeLabel: function(label,nodeClass){
+			this.options.nodeLabel[nodeClass] = label;
+			this.resetGraph();
+		},	
+		changeEdgeLabel: function(label,edgeClass){
+			this.options.edgeLabel[edgeClass] = label;
+			this.resetGraph();
+		},
+		changeWeightageAttribute: function(attribute,edgeClass){
+			this.options.weight[edgeClass] = attribute;
+			this.resetGraph();
+		},
+		changeOverallEdgeClass: function(edgeClass){
+			this.options.edgeUsed = edgeClass
+			//this.resetGraph();
+		}			
+	
     };
 	function ajax(url,jsonString,callback){
 		$.ajax({

@@ -2,7 +2,7 @@ var active;
 $( document ).ready(function() {	
 	var graph1 = $("#graph1").GraphVisualizer({
 		rdy:function(){
-			var schema = active.schemas.result[0];
+			var schema = active.schemas;
 			$("#nodeLabelClassSelect").html("");
 			$("#nodeLabelClassSelect").append("<option value=''></option>");
 			for(var i=0;i<schema.vertex.length;i++){
@@ -19,8 +19,9 @@ $( document ).ready(function() {
 			$("#nodeLabelAttributeSelect").on('change',function(){
 				var index = document.getElementById("nodeLabelClassSelect").options[document.getElementById("nodeLabelClassSelect").selectedIndex].value;
 				var label = this.options[this.selectedIndex].value;
-				active.options.nodeLabel[schema.vertex[index].name] = label;
-				active.resetGraph();
+				active.changeNodeLabel(label,schema.vertex[index].name)
+				/*active.options.nodeLabel[schema.vertex[index].name] = label;
+				active.resetGraph();*/
 			});
 			
 			$("#edgeLabelClassSelect").html("");
@@ -41,9 +42,10 @@ $( document ).ready(function() {
 			$("#edgeLabelAttributeSelect").on('change',function(){
 				var index = document.getElementById("edgeLabelClassSelect").options[document.getElementById("edgeLabelClassSelect").selectedIndex].value;
 				var label = this.options[this.selectedIndex].value;
-				active.options.edgeLabel[schema.edge[index].name] = label;
+				active.changeEdgeLabel(label,schema.edge[index].name)
+				/*active.options.edgeLabel[schema.edge[index].name] = label;
 				console.log(active.options.edgeLabel);
-				active.resetGraph();
+				active.resetGraph();*/
 			});
 			
 			
@@ -57,10 +59,19 @@ $( document ).ready(function() {
 			});
 			$("#edgeWeightageAttributeSelect").on('change',function(){
 				var index = document.getElementById("edgeClassSelect").options[document.getElementById("edgeClassSelect").selectedIndex].value;
-				var label = this.options[this.selectedIndex].value;
-				active.options.weight[schema.edge[index].name] = label;
+				var attribute = this.options[this.selectedIndex].value;
+				changeWeightageAttribute(attribute,schema.edge[index].name);
+				/*active.options.weight[schema.edge[index].name] = label;
 				console.log(active.options.edgeLabel);
-				active.resetGraph();
+				active.resetGraph();*/
+			});
+			$("#OverallEdgeClassSelect").empty();
+			$("#OverallEdgeClassSelect").append("<option value=''></option>");
+			for(var i=0;i<schema.edge.length;i++){
+				$("#OverallEdgeClassSelect").append("<option value='"+schema.edge[i].name+"'>"+schema.edge[i].name+"</option>");
+			}
+			$("#OverallEdgeClassSelect").on("change",function(){
+				active.changeOverallEdgeClass(this.options[this.selectedIndex].value);
 			});
 		}
 	});
@@ -91,7 +102,7 @@ $( document ).ready(function() {
 		var rid = $("#rid").val();
 		var classType = $("#classType").val();
 		var vertex = false;
-		if($("#classType")[0].options[1].value == active.schemas.result[0].vertex[0].name){
+		if($("#classType")[0].options[1].value == active.schemas.vertex[0].name){
 			vertex= true;
 		}
 		active.deleteNEinNetwork(rid,classType,vertex);
@@ -100,10 +111,10 @@ $( document ).ready(function() {
 		if(this.selectedIndex>0){
 			var schemas = active.schemas;
 			var classProperty;
-			if(this.options[1].value==schemas.result[0].vertex[0].name){
-				classProperty = schemas.result[0].vertex[this.selectedIndex-1].properties; 
+			if(this.options[1].value==schemas.vertex[0].name){
+				classProperty = schemas.vertex[this.selectedIndex-1].properties; 
 			}else{
-				classProperty = schemas.result[0].edge[this.selectedIndex-1].properties;
+				classProperty = schemas.edge[this.selectedIndex-1].properties;
 			}
 			var formchild = $("#NED form div:nth-child(1)");
 			formchild.nextAll().remove();
@@ -122,11 +133,44 @@ $( document ).ready(function() {
 			active.toggleDirected(false);
 		}
 	});
+	
 	$("#uploadNetworkBtn")[0].addEventListener('change', function(e) {
 		var file = this.files[0]
 		var reader = new FileReader();
+		var fileType = "Edge";
+		var nodes = {};
+		var edges = {};
 		reader.onload = function(e) {
-			active.uploadNetwork(JSON.parse(reader.result))
+			if(fileType=="Edge"){
+				var raw = reader.result;
+				var arr = raw.split("\n");
+				for(i in arr){
+					var temp = arr[i];
+					var node12 = temp.split(" ");
+					var node1 = node12[0];
+					var node2 = node12[1];
+					if(nodes[node1]==undefined){
+						nodes[node1] = {"@rid":node1,"@class":"V",}
+					}
+					if(nodes[node1]["out_E"]==undefined){
+						nodes[node1]["out_E"] = [];
+					}
+					nodes[node1]["out_E"].push(temp);
+					if(nodes[node2]==undefined){
+						nodes[node2] = {"@rid":node2,"@class":"V",}
+					}
+					if(nodes[node2]["in_E"]==undefined){
+						nodes[node2]["in_E"] = [];
+					}
+					nodes[node2]["in_E"].push(temp);
+					edges[temp] = {"@rid":temp,"@class":"E",in:node2,out:node1,source:nodes[node1],target:nodes[node2]};
+				}
+				var nodesArr = Object.keys(nodes).map(function (key) { return nodes[key]; });
+				var edgesArr = Object.keys(edges).map(function (key) { return edges[key]; });
+				var json = {result:nodesArr.concat(edgesArr)};//{nodes:nodesArr,links:edgesArr}
+				active.uploadNetwork(json);
+			}
+			
 		}
 		reader.readAsText(file);	
 	});
@@ -139,10 +183,10 @@ $( document ).ready(function() {
 		var ridfrom = $("#ridfrom").val();
 		var properties = {};
 		var selectedIndex = $("#classType")[0].selectedIndex;
-		var property = schemas.result[0].edge[selectedIndex-1].properties;
-		if($("#classType")[0].options[1].value == schemas.result[0].vertex[0].name){
+		var property = schemas.edge[selectedIndex-1].properties;
+		if($("#classType")[0].options[1].value == schemas.vertex[0].name){
 			vertex= true;
-			property = schemas.result[0].vertex[selectedIndex-1].properties;
+			property = schemas.vertex[selectedIndex-1].properties;
 		}
 		for(var i=0;i<property.length;i++){
 			properties[property[i].name] = $("#class_"+property[i].name).val();
@@ -151,27 +195,50 @@ $( document ).ready(function() {
 	});
 	console.log(active);
 	$("#degree").on("click",function(){//OK
-		var edgeType = "follows";
-		var degreeDist = active.getDegreeDistribution(edgeType)
-		var graph = new HistogramGraph("#graphModal",degreeDist,"x","y");
-		graph.plot();
+		var edgeType = active.options.edgeUsed;
+		var degreeDist = active.getDegreeDistribution(edgeType,active.directed);
+		console.log(degreeDist);
+		$("#graphModal .modal-body").empty();
+		if(active.directed){
+			var graphIn = new HistogramGraph("#graphModal",degreeDist.in,"x","y","in Degree distribution","k(in)","p(k)");
+			var graphOut = new HistogramGraph("#graphModal",degreeDist.out,"x","y","out Degree distribution","k(out)","p(k)");						
+			graphOut.plot();
+			graphIn.plot();
+		}else{
+			var graph = new HistogramGraph("#graphModal",degreeDist,"x","y","Degree Distribution","k","p(k)");
+			graph.plot();
+		}
+		
 	});
 	$("#diameter").on("click",function(){//OK
-		var edgeType = "follows";
+		var edgeType = active.options.edgeUsed;
 		var diameter = active.getDiameter(edgeType)
+		$("#graphModal .modal-body").empty();
 		console.log(diameter);
+		for(i in diameter.path){
+			$("circle[rid='"+diameter.path[i]+"']").attr("fill","red");
+		}
 	});
 	$("#CC").on("click",function(){//OK
-		var edgeType = "follows";
+		var edgeType = active.options.edgeUsed;
 		var CCdist = active.getCCDistribution(edgeType)
 		console.log(CCdist);
-		var graph = new HistogramGraph("#graphModal",CCdist,"x","y");
+		$("#graphModal .modal-body").empty();
+		var graph = new HistogramGraph("#graphModal",CCdist,"x","y","Clustering Coefficient Distribution","CC","p(CC)");
 		graph.plot();
 	});
 	$("#closeness").on("click",function(){
-		var edgeType = "follows";
-		var closeness = active.getCloseness(edgeType)
+		var edgeType = active.options.edgeUsed;
+		var closeness = active.getCloseness(edgeType);
+		$("#graphModal .modal-body").empty();
 		console.log(closeness);
+		$("#graphModal .modal-body").append("<div class='table-responsive'>"+
+													"<table class='table'><tbody><tr><td>ID</td><td>Closeness</td></tr></tbody></table>"+
+												"</div>");
+		var table = $("#graphModal .modal-body table tbody")
+		for(i in closeness){
+			table.append("<tr><td>"+i+"</td><td>"+closeness[i]+"</td></tr>");
+		}
 	});
 	
 });

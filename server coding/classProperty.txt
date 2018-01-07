@@ -1,0 +1,4 @@
+var json = {};
+json.vertex = db.query("SELECT from (select expand(classes) from metadata:schema) where 'V' in superClasses");
+json.edge = db.query("SELECT from (select expand(classes) from metadata:schema) where 'E' in superClasses");
+return json;
