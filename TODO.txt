@@ -11,6 +11,7 @@ TODO
 --hold ctrl(OK)
 --left on how to display the distance and path to take(OK)
 --how to determine which edge to use?(OK)
+12)add rid as 1 of the labels(DONE)
 ===NOT DONE===
 
 ===DO NOW===
@@ -23,7 +24,7 @@ TODO
 --will only be computed when needed
 --add in a computing screen
 --may need to transfer the computing to the server
-
+13)add color code for edges
 ===DO LATER===
 1)find better layouts to display graphs properly
 --add options to change types of layouts

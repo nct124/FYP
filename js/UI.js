@@ -5,6 +5,7 @@ $( document ).ready(function() {
 			var schema = active.schemas;
 			$("#nodeLabelClassSelect").html("");
 			$("#nodeLabelClassSelect").append("<option value=''></option>");
+			
 			for(var i=0;i<schema.vertex.length;i++){
 				$("#nodeLabelClassSelect").append("<option value='"+i+"'>"+schema.vertex[i].name+"</option>");
 			}
@@ -12,6 +13,7 @@ $( document ).ready(function() {
 				var index = this.options[this.selectedIndex].value;
 				$("#nodeLabelAttributeSelect").html("");
 				$("#nodeLabelAttributeSelect").append("<option value=''></option>");
+				$("#nodeLabelAttributeSelect").append("<option value='@rid'>rid</option>");
 				for(var i=0;i<schema.vertex[index].properties.length;i++){
 					$("#nodeLabelAttributeSelect").append("<option value='"+schema.vertex[index].properties[i].name+"'>"+schema.vertex[index].properties[i].name+"</option>");
 				}
@@ -25,6 +27,7 @@ $( document ).ready(function() {
 			});
 			
 			$("#edgeLabelClassSelect").html("");
+			$("#edgeClassSelect").html("");
 			$("#edgeLabelClassSelect").append("<option value=''></option>");
 			$("#edgeClassSelect").append("<option value=''></option>");
 			for(var i=0;i<schema.edge.length;i++){
@@ -61,9 +64,6 @@ $( document ).ready(function() {
 				var index = document.getElementById("edgeClassSelect").options[document.getElementById("edgeClassSelect").selectedIndex].value;
 				var attribute = this.options[this.selectedIndex].value;
 				changeWeightageAttribute(attribute,schema.edge[index].name);
-				/*active.options.weight[schema.edge[index].name] = label;
-				console.log(active.options.edgeLabel);
-				active.resetGraph();*/
 			});
 			$("#OverallEdgeClassSelect").empty();
 			$("#OverallEdgeClassSelect").append("<option value=''></option>");
@@ -215,8 +215,14 @@ $( document ).ready(function() {
 		var diameter = active.getDiameter(edgeType)
 		$("#graphModal .modal-body").empty();
 		console.log(diameter);
-		for(i in diameter.path){
-			$("circle[rid='"+diameter.path[i]+"']").attr("fill","red");
+		for(p in diameter.path){
+			for(i in diameter.path[p]){
+				if(i==0 || i ==diameter.path[p].length-1){
+					$("circle[rid='"+diameter.path[p][i]+"']").attr("fill","green");
+				}else{
+					$("circle[rid='"+diameter.path[p][i]+"']").attr("fill","red");
+				}
+			}
 		}
 	});
 	$("#CC").on("click",function(){//OK
@@ -240,5 +246,9 @@ $( document ).ready(function() {
 			table.append("<tr><td>"+i+"</td><td>"+closeness[i]+"</td></tr>");
 		}
 	});
-	
+	$("#betweenness").on("click",function(){
+		var edgeType = active.options.edgeUsed;
+		var betweenness = active.getBetweenness(edgeType);
+		console.log(betweenness);
+	});
 });

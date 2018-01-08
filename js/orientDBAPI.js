@@ -38,7 +38,7 @@
         init: function (options) {
 			//init and overwrite the functions
 			var parent = this;
-            
+            this.distance = 600;
 			this.svg = d3.select("#"+$(this.element).attr('id'));
 			$.extend(this.options, options);
 			var width = $(this.svg._groups[0][0]).parent().width()
@@ -59,7 +59,7 @@
 			this.color = d3.scaleOrdinal(d3.schemeCategory20);
 
 			this.simulation = d3.forceSimulation()
-			.force("link", d3.forceLink().id(function(d) { return d[parent.options.IDlink]; }).distance(500).strength(0.5))
+			.force("link", d3.forceLink().id(function(d) { return d[parent.options.IDlink]; }).distance((parent.distance)/3).strength(0.5))
 			.force("charge", d3.forceManyBody())
 			.force("center", d3.forceCenter(width / 2, height / 2));
 			
@@ -216,10 +216,20 @@
 						pres[ne] = current;
 						//update neighbor node priority ie remove and add neighbor with new weightage
 						queue.decreaseKey(ne,dist[ne]);
+					}else if(dist[ne]==(dist[current]+weight)){
+						//when u find another shortest path
+						if(Array.isArray(pres[ne])){
+							pres[ne].push(current)
+						}else{
+							pres[ne] = [pres[ne]]
+							pres[ne].push(current)
+						}
 					}
 				}
 			}
-			return {dist:dist,pres:pres,longestDistance:{dist:longestDistance,node:longestDistanceNode}};
+			var json = {dist:dist,pres:pres,longestDistance:{dist:longestDistance,node:longestDistanceNode}};
+			//console.log(json);
+			return json;
 		},
 		BFS: function(startRID,edgeType){
 			var visited = {};
@@ -339,7 +349,7 @@
 			.on("tick", function(){
 				if(parent.animate == true){
 					parent.link.attr("d", function(d) {
-						var r = 150;
+						var r = parent.distance;
 						var dr = r/d.linknum;  //linknum is defined above
 						return "M" + d.source.x + "," + d.source.y + 
 						 "A" + dr + "," + dr + " 0 0,1 " + d.target.x + "," + d.target.y;
@@ -489,6 +499,40 @@
 			});
 			return edges;
 		},
+		recursivePath:function(pres,srcID,prev,current){
+			if(current==srcID){
+				/*for(var i=0;i<this.path.length;i++){
+					console.log(i);
+					this.path[i].unshift(current);
+					console.log(this.path[i]);
+				}*/
+				return;
+			}else{
+				if(Array.isArray(current)){
+					for(var i=0;i<this.path.length;i++){
+						if(this.path[i][0]==prev){
+							var originalpath = this.path[i].slice();
+							this.path[i].unshift(current[0]);
+							this.recursivePath(pres,srcID,current[0],pres[current[0]]);
+							for(var j=1;j<current.length;j++){
+								var newpath = originalpath.slice();//this.path[p].slice();
+								newpath.unshift(current[j]);
+								this.path.unshift(newpath);
+								i++;
+								this.recursivePath(pres,srcID,current[j],pres[current[j]]);
+							}
+						}
+					}
+				}else{
+					for(p in this.path){
+						if(this.path[p][0]==prev){
+							this.path[p].unshift(current);
+						}
+					}
+					this.recursivePath(pres,srcID,current,pres[current]);
+				}
+			}
+		},
 		//to be editted to remove manipulating UI in plugin
 		initNodeClick: function (nodes){
 			var parent = this;
@@ -506,22 +550,24 @@
 					var srcID = parent.clickedNode["source"];
 					var destID = node["@rid"];
 					var allDistance = parent.shortestPath(srcID,parent.options.edgeUsed);
+					console.log(allDistance);
 					var distance = allDistance["dist"][destID];
 					if(distance!=undefined){
-						var path = destID;
-						var current = allDistance["pres"][destID];
-						$("circle[rid='"+destID+"']").attr("fill","red");
-						while(current!=srcID){
-							$("circle[rid='"+current+"']").attr("fill","red");
-							path = current+"->"+path;
-							current = allDistance["pres"][current];
+						parent.path = [[destID]];
+						parent.recursivePath(allDistance["pres"],srcID,destID,allDistance["pres"][destID])
+						console.log(parent.path);
+						for(p in parent.path){
+							for(n in parent.path[p]){
+								var nid = parent.path[p][n];
+								$("circle[rid='"+nid+"']").attr("fill","red");
+							}
 						}
-						$("circle[rid='"+srcID+"']").attr("fill","red");
-						path = current+"->"+path;
+						$("circle[rid='"+destID+"']").attr("fill","green");
+						$("circle[rid='"+srcID+"']").attr("fill","green");
 						console.log("srcID:"+srcID);
 						console.log("destID:"+destID);
 						console.log("Distance:"+distance);
-						console.log("path:"+path);
+						console.log(parent.path);
 					}else{
 						console.log("selected node is not reachable");
 					}
@@ -593,8 +639,41 @@
 			});
 			return nodes;
 		},
+		getBetweenness: function(edgeType){
+			//(no. path going thru a certain vertex) / (no. path)
+			var betweennessArray = {};
+			for(srcID in this.nodeMap){
+				var distance = this.shortestPath(srcID,edgeType);
+				for(destID in distance.dist){
+					for(node in this.nodeMap){
+						var tempBetweenness = 0;
+						if(distance.dist[destID]>1){
+							this.path = [[destID]];
+							this.recursivePath(distance["pres"],srcID,destID,distance["pres"][destID])
+							for(i in this.path){
+								this.path[i].splice(this.path[i].length-1,1);
+								if(this.path[i].indexOf(node)>-1){
+									tempBetweenness++;
+								}
+							}
+							if(betweennessArray[node]==undefined){
+								betweennessArray[node] = 0
+							}
+							betweennessArray[node] += tempBetweenness/this.path.length;
+						}
+					}
+				}
+			}
+			var n = this.nodes.length;
+			for(i in betweennessArray){
+				betweennessArray[i] = betweennessArray[i] / 2;
+				betweennessArray[i] = betweennessArray[i] / ((n-1)*(n-1)/2);
+			}
+				
+			return betweennessArray;
+		},
 		getCloseness: function(edgeType){
-			closenessArray = {};
+			var closenessArray = {};
 			for(nodeID in this.nodeMap){
 				var distance = this.shortestPath(nodeID,edgeType);
 				var sum = 0;
@@ -636,22 +715,24 @@
 			
 			for(nodeID in this.nodeMap){
 				var distance = this.shortestPath(nodeID,edgeType);
-				if(distance.longestDistance.dist>ld){
-					ld = distance.longestDistance.dist;
-					ldp = distance;
-					lds = nodeID;
+				console.log(distance);
+				if(distance.longestDistance!=undefined){
+					if(distance.longestDistance.dist>ld){
+						ld = distance.longestDistance.dist;
+						ldp = distance;
+						lds = nodeID;
+					}
 				}
+				
 			}
-			var path = [ldp.longestDistance.node];
-			var pres = ldp.pres;
-			var current = pres[ldp.longestDistance.node];
-			while(current!=lds){
-				path.unshift(current);
-				current = pres[current];
+			if(ldp!=undefined){
+				this.path = [[ldp.longestDistance.node]];
+				this.recursivePath(ldp.pres,lds,ldp.longestDistance.node,ldp.pres[ldp.longestDistance.node]);
+				for(i in this.path){
+					this.path[i].unshift(lds);
+				}
+				return {dist:ld,path:this.path};
 			}
-			path.unshift(current);
-			return {dist:ld,path:path};
-			
 		},
 		getDegreeDistribution: function(edgeType,directed){
 			var data = {};
