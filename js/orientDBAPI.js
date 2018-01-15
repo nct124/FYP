@@ -168,12 +168,17 @@
 				if(this.neighborMap[edge['@class']+"_"+edge.out]==undefined){
 					this.neighborMap[edge['@class']+"_"+edge.out] = [];
 				}
-				this.neighborMap[edge['@class']+"_"+edge.out].push(edge.in);
+				if(this.neighborMap[edge['@class']+"_"+edge.out].indexOf(edge.in)==-1){
+					this.neighborMap[edge['@class']+"_"+edge.out].push(edge.in);
+				}
 				if(this.directed==false){
 					if(this.neighborMap[edge['@class']+"_"+edge.in]==undefined){
 						this.neighborMap[edge['@class']+"_"+edge.in] = [];
 					}
-					this.neighborMap[edge['@class']+"_"+edge.in].push(edge.out);
+					if(this.neighborMap[edge['@class']+"_"+edge.in].indexOf(edge.out)==-1){
+						this.neighborMap[edge['@class']+"_"+edge.in].push(edge.out);
+					}
+					
 				}
 			}
 		},
@@ -219,7 +224,7 @@
 					var ne = neighbor[n];
 					var weight = 1;
 					if(this.options.weight[edgeType]!=undefined && this.options.weight[edgeType]!=""){
-						var edge = getEdge(current,ne,edgeType,this.nodeMap,this.edgeMap)
+						var edge = getEdge(current,ne,edgeType,this.nodeMap,this.edgeMap,this.directed)
 						weight = parseInt(edge[this.options.weight[edgeType]]);
 					}
 					if(visited[ne]==undefined && ( dist[ne]==undefined || (dist[ne]> (dist[current]+weight)))){
@@ -384,7 +389,6 @@
 					.attr("cy", function(d) { return d.y+(20+(20*d.weight)) });
 					parent.animate = false;
 				}
-				
 			});
 
 			this.simulation.force("link")
@@ -400,6 +404,7 @@
 					parent.node.attr("transform", d3.event.transform);
 					parent.nodeText.attr("transform", d3.event.transform);
 					parent.hoverPoints.attr("transform", d3.event.transform);
+					$("#drawline").attr("transform",d3.event.transform)
 				})
 			)
 			return rect;
@@ -410,7 +415,7 @@
 			rect.on("mousemove", function(){
 				if(parent.drawline){
 					parent.linexy1 = d3.mouse(this)[0]+" "+d3.mouse(this)[1];
-					var point = $(".hover circle[rid='"+parent.linexy0+"']");
+					var point = $(".hover circle[ridhover='"+parent.linexy0+"']");
 					$("#drawline")
 					.attr("x1",point.attr("cx"))
 					.attr("y1",point.attr("cy"))
@@ -1473,14 +1478,28 @@
 		d.fx = null;
 		d.fy = null;
 	}
-	function getEdge(srid,drid,edgeType,nodeMap,edgeMap) {
-		var edges = nodeMap[srid]["out_"+edgeType];
+	function getEdge(srid,drid,edgeType,nodeMap,edgeMap,directed) {
+		var edges = [];
+		if(nodeMap[srid]["out_"+edgeType]!=undefined){
+			edges = nodeMap[srid]["out_"+edgeType];
+		}
+		if(!directed){
+			if(nodeMap[srid]["in_"+edgeType]!=undefined){
+				edges.concat(nodeMap[srid]["in_"+edgeType]);
+			}
+		}
 		for(e in edges){
 			var edge = edgeMap[edges[e]];
 			if(edge['in']==drid){
 				return edge;
 			}
+			if(!directed){
+				if(edge['out']==drid){
+					return edge;
+				}
+			}
 		}
+		console.log("cant find");
 		return undefined;
 	}
 	function enableAnimation(){
