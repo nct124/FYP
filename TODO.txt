@@ -12,6 +12,15 @@ TODO
 --left on how to display the distance and path to take(OK)
 --how to determine which edge to use?(OK)
 12)add rid as 1 of the labels(DONE)
+13)add color code for edges(OK)
+-add in network details(DONE)
+--num of node/edge(DONE)
+--gamma(DONE)
+--add avg into the graphs(degree/CC)(DONE)
+-change to appropriate tabs when clicking stuff(nodes/edge)(OK)
+-load the V/E schema from the start and load it when u clear the graph as well(OK)
+-do something about the create/delete nodes/edge(OK)
+-update UI right after creating node/edge(OK)
 ===NOT DONE===
 
 ===DO NOW===
@@ -24,7 +33,8 @@ TODO
 --will only be computed when needed
 --add in a computing screen
 --may need to transfer the computing to the server
-13)add color code for edges
+14)increase size of node according to degree/closeness/betweenness/CC(DONE)
+16)update weight of affected nodes
 ===DO LATER===
 1)find better layouts to display graphs properly
 --add options to change types of layouts
@@ -33,12 +43,17 @@ TODO
 --done 1(show prof to cfm which to do)
 ---1.Support all format
 ---2.Make the user follow my format
+15)do something about the export network
 
 === may not need to do ===
 8) add undo(SEE HOW)
 --undo delete,revert back to original values
 10)remove all usage of "out_"/"in_"(DUN THINK NEEDED)
 --use only neighborMap
+
+=== new ===
+
+
 
 
 

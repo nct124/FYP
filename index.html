@@ -10,6 +10,7 @@
 	
     <script src="https://d3js.org/d3.v4.min.js"></script>
 	<script src="js/priority_queue.js"></script>
+	<script src="js/distribution.js"></script>
 	<script src="js/plot.js"></script>
 	<script src="js/orientDBAPI.js"></script>
 	<script src="js/UI.js"></script>
@@ -37,6 +38,13 @@
 					<div class="form-group">
 						<input type="button" class="btn btn-default" value="Clear" id="clearBtn"/>
 					</div>
+					<div class="form-group errormsgdiv">
+						<!--<div class="errormsg alert alert-danger fade in">
+						  <strong>Danger!</strong> Indicates a dangerous or potentially negative action.
+						  <a href="#" class="close" data-dismiss="alert" aria-label="close">&times;</a>
+						</div>-->
+					</div>
+					
 				</form>
 			</div>
 			<div class="row">
@@ -56,16 +64,21 @@
 						<div class="tab-content">
 							<div id="NetD" class="tab-pane fade in active">
 								<h4>Network Details</h4>
+								<div class="properties">
+								</div>
 								<div class="form-group">
 									<label for="OverallEdgeClassSelect">Edge Class:</label>
 									<select id="OverallEdgeClassSelect" class="form-control"></select>
 								</div>
 								<input type="button" id="degree" data-toggle="modal" value="Degree(OK)" data-target="#graphModal"/>
 								<input type="button" id="CC" data-toggle="modal" value="CC(OK)" data-target="#graphModal"/>
-								<input type="button" id="diameter" data-toggle="modal" value="Diameter(OK)" data-target="#graphModal"/>
+								<input type="button" id="diameter" value="Diameter(OK)"/>
 								<input type="button" id="closeness" data-toggle="modal" value="Closeness(OK)" data-target="#graphModal"/>
 								<input type="button" id="betweenness" data-toggle="modal" value="Betweenness(OK)" data-target="#graphModal"/>
-								<input type="button" id="pagerank" data-toggle="modal" value="PageRank" data-target="#graphModal"/>
+								<!--<input type="button" id="pagerank" data-toggle="modal" value="PageRank" data-target="#graphModal"/>-->
+								<br/><ul class="list-group distance">
+									
+								</ul>
 							</div>
 							<div id="NED" class="tab-pane fade">
 								<h4>Node/Edge Details</h4>
@@ -143,43 +156,31 @@
 									<label for="edgeWeightageAttributeSelect">Edge Weightage Attribute:</label>
 									<select id="edgeWeightageAttributeSelect" class="form-control"></select>
 								</div>
+								<div class="form-group">
+									<label for="NodeSizePropertySelect">Node Size Property:</label>
+									<select id="NodeSizePropertySelect" class="form-control">
+										<option value=""></option>
+										<option value="degree">degree</option>
+										<option value="CC">Clustering Coefficient</option>
+										<option value="closeness">Closeness</option>
+										<option value="betweeness">Betweeness</option>
+									</select>
+								</div>
 							</div>
 						</div>
 					</div>
 				</div>
 			</div>
 			<div class="row">
-				<div class="col-md-4">
-					node:
-					<ul>
-						<li class="ID">ID</li>
-						<li class="inDegree">in degree</li>
-						<li class="outDegree">out degree</li>
-						<li class="CC">clustering coefficient</li>
-					</ul>
-				</div>
-				<div class="col-md-4">
-					edge:
-					<ul>
-						<li>ID</li>
-						<li>source node</li>
-						<li>target node</li>
-						<li>hover will highlight the node</li>
-					</ul>
-				</div>
-				<div class="col-md-4">
-					2 nodes:
-					<ul>
-						<li>selected node ID(hover highlight the 2 nodes)</li>
-						<li>shortest distance for specific edge</li>
-					</ul>
+				<div class="col-md-12">
+					
 				</div>
 			</div>
 			
 		</div>
 	</nav>
 	<div class="modal fade" id="graphModal" role="dialog">
-		<div class="modal-dialog">
+		<div class="modal-dialog modal-lg">
 			<div class="modal-content">
 				<div class="modal-header">
 					<button type="button" class="close" data-dismiss="modal">&times;</button>

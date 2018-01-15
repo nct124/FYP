@@ -24,5 +24,10 @@ svg.graph{
 }
 #NetD,#NED,#controlpanel{
 	overflow:auto;
-	height:100%;
+	height:575px;
+}
+.errormsg.alert{
+	padding: 6px;
+	padding-left:10px;
+    margin-bottom: 0px;
 }

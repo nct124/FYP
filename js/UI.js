@@ -2,73 +2,70 @@ var active;
 $( document ).ready(function() {	
 	var graph1 = $("#graph1").GraphVisualizer({
 		rdy:function(){
-			var schema = active.schemas;
+			active.schemas;
 			$("#nodeLabelClassSelect").html("");
 			$("#nodeLabelClassSelect").append("<option value=''></option>");
 			
-			for(var i=0;i<schema.vertex.length;i++){
-				$("#nodeLabelClassSelect").append("<option value='"+i+"'>"+schema.vertex[i].name+"</option>");
+			for(var i=0;i<active.schemas.vertex.length;i++){
+				$("#nodeLabelClassSelect").append("<option value='"+i+"'>"+active.schemas.vertex[i].name+"</option>");
 			}
 			$("#nodeLabelClassSelect").on("change",function(){
 				var index = this.options[this.selectedIndex].value;
 				$("#nodeLabelAttributeSelect").html("");
 				$("#nodeLabelAttributeSelect").append("<option value=''></option>");
 				$("#nodeLabelAttributeSelect").append("<option value='@rid'>rid</option>");
-				for(var i=0;i<schema.vertex[index].properties.length;i++){
-					$("#nodeLabelAttributeSelect").append("<option value='"+schema.vertex[index].properties[i].name+"'>"+schema.vertex[index].properties[i].name+"</option>");
+				for(var i=0;i<active.schemas.vertex[index].properties.length;i++){
+					$("#nodeLabelAttributeSelect").append("<option value='"+active.schemas.vertex[index].properties[i].name+"'>"+active.schemas.vertex[index].properties[i].name+"</option>");
 				}
 			});
 			$("#nodeLabelAttributeSelect").on('change',function(){
 				var index = document.getElementById("nodeLabelClassSelect").options[document.getElementById("nodeLabelClassSelect").selectedIndex].value;
 				var label = this.options[this.selectedIndex].value;
-				active.changeNodeLabel(label,schema.vertex[index].name)
-				/*active.options.nodeLabel[schema.vertex[index].name] = label;
-				active.resetGraph();*/
+				active.changeNodeLabel(label,active.schemas.vertex[index].name)
 			});
 			
 			$("#edgeLabelClassSelect").html("");
 			$("#edgeClassSelect").html("");
 			$("#edgeLabelClassSelect").append("<option value=''></option>");
 			$("#edgeClassSelect").append("<option value=''></option>");
-			for(var i=0;i<schema.edge.length;i++){
-				$("#edgeLabelClassSelect").append("<option value='"+i+"'>"+schema.edge[i].name+"</option>");
-				$("#edgeClassSelect").append("<option value='"+i+"'>"+schema.edge[i].name+"</option>");
+			for(var i=0;i<active.schemas.edge.length;i++){
+				$("#edgeLabelClassSelect").append("<option value='"+i+"'>"+active.schemas.edge[i].name+"</option>");
+				$("#edgeClassSelect").append("<option value='"+i+"'>"+active.schemas.edge[i].name+"</option>");
 			}
 			$("#edgeLabelClassSelect").on("change",function(){
 				var index = this.options[this.selectedIndex].value;
 				$("#edgeLabelAttributeSelect").html("");
 				$("#edgeLabelAttributeSelect").append("<option value=''></option>");
-				for(var i=0;i<schema.edge[index].properties.length;i++){
-					$("#edgeLabelAttributeSelect").append("<option value='"+schema.edge[index].properties[i].name+"'>"+schema.edge[index].properties[i].name+"</option>");
+				console.log(index);
+				console.log(active.schemas.edge[index]);
+				console.log(active.schemas);
+				for(var i=0;i<active.schemas.edge[index].properties.length;i++){
+					$("#edgeLabelAttributeSelect").append("<option value='"+active.schemas.edge[index].properties[i].name+"'>"+active.schemas.edge[index].properties[i].name+"</option>");
 				}
 			});
 			$("#edgeLabelAttributeSelect").on('change',function(){
 				var index = document.getElementById("edgeLabelClassSelect").options[document.getElementById("edgeLabelClassSelect").selectedIndex].value;
 				var label = this.options[this.selectedIndex].value;
-				active.changeEdgeLabel(label,schema.edge[index].name)
-				/*active.options.edgeLabel[schema.edge[index].name] = label;
-				console.log(active.options.edgeLabel);
-				active.resetGraph();*/
+				active.changeEdgeLabel(label,active.schemas.edge[index].name)
 			});
-			
 			
 			$("#edgeClassSelect").on("change",function(){
 				var index = this.options[this.selectedIndex].value;
 				$("#edgeWeightageAttributeSelect").html("");
 				$("#edgeWeightageAttributeSelect").append("<option value=''></option>");
-				for(var i=0;i<schema.edge[index].properties.length;i++){
-					$("#edgeWeightageAttributeSelect").append("<option value='"+schema.edge[index].properties[i].name+"'>"+schema.edge[index].properties[i].name+"</option>");
+				for(var i=0;i<active.schemas.edge[index].properties.length;i++){
+					$("#edgeWeightageAttributeSelect").append("<option value='"+active.schemas.edge[index].properties[i].name+"'>"+active.schemas.edge[index].properties[i].name+"</option>");
 				}
 			});
 			$("#edgeWeightageAttributeSelect").on('change',function(){
 				var index = document.getElementById("edgeClassSelect").options[document.getElementById("edgeClassSelect").selectedIndex].value;
 				var attribute = this.options[this.selectedIndex].value;
-				changeWeightageAttribute(attribute,schema.edge[index].name);
+				active.changeWeightageAttribute(attribute,active.schemas.edge[index].name);
 			});
 			$("#OverallEdgeClassSelect").empty();
 			$("#OverallEdgeClassSelect").append("<option value=''></option>");
-			for(var i=0;i<schema.edge.length;i++){
-				$("#OverallEdgeClassSelect").append("<option value='"+schema.edge[i].name+"'>"+schema.edge[i].name+"</option>");
+			for(var i=0;i<active.schemas.edge.length;i++){
+				$("#OverallEdgeClassSelect").append("<option value='"+active.schemas.edge[i].name+"'>"+active.schemas.edge[i].name+"</option>");
 			}
 			$("#OverallEdgeClassSelect").on("change",function(){
 				active.changeOverallEdgeClass(this.options[this.selectedIndex].value);
@@ -76,15 +73,26 @@ $( document ).ready(function() {
 		}
 	});
 	active = graph1;
+	active.options.rdy();
 	$("#queryBtn").on("click",function(){
 		var query = $("#query").val();
-		active.queryDatabase(query);
+		active.queryDatabase(query,function(){
+			var property = active.loadNetworkProperties();
+			console.log(property);
+			$("#NetD .properties").html("<div class='table-responsive'>"+
+													"<table class='table'><tbody></tbody></table>"+
+												"</div>");
+			var table = $("#NetD .properties table tbody")
+			for(i in property){
+				table.append("<tr><td>"+i+"</td><td>"+property[i]+"</td></tr>");
+			}
+		});
 	});
 	$("#clearBtn").on("click",function(){
 		active.clearGraph();
 	});
 	$("#addBtn").on("click",function(){
-		var newGraph = {nodes:[{"@class":"","x":300,"y":300,"@rid":Math.floor(Math.random() * (100000 - 1) + 1).toString()}]
+		var newGraph = {nodes:[{"@class":"","x":300,"y":300,"@rid":Math.floor(Math.random() * (100000 - 1) + 1).toString(),weight:0}]
 			,links:[]
 		}
 		var removeGraph = {nodes:[],links:[]};
@@ -148,7 +156,7 @@ $( document ).ready(function() {
 					var temp = arr[i];
 					var node12 = temp.split(" ");
 					var node1 = node12[0];
-					var node2 = node12[1];
+					var node2 = node12[1].trim();
 					if(nodes[node1]==undefined){
 						nodes[node1] = {"@rid":node1,"@class":"V",}
 					}
@@ -168,7 +176,19 @@ $( document ).ready(function() {
 				var nodesArr = Object.keys(nodes).map(function (key) { return nodes[key]; });
 				var edgesArr = Object.keys(edges).map(function (key) { return edges[key]; });
 				var json = {result:nodesArr.concat(edgesArr)};//{nodes:nodesArr,links:edgesArr}
-				active.uploadNetwork(json);
+				active.uploadNetwork(json,function(){
+					var property = active.loadNetworkProperties();
+					console.log(property);
+					$("#NetD .properties").html("<div class='table-responsive'>"+
+															"<table class='table'><tbody><tr><td>ID</td><td>Closeness</td></tr></tbody></table>"+
+														"</div>");
+					var table = $("#NetD .properties table tbody")
+					for(i in property){
+						table.append("<tr><td>"+i+"</td><td>"+property[i]+"</td></tr>");
+					}
+				});
+				document.getElementById("uploadNetworkBtn").value="";
+				
 			}
 			
 		}
@@ -191,7 +211,12 @@ $( document ).ready(function() {
 		for(var i=0;i<property.length;i++){
 			properties[property[i].name] = $("#class_"+property[i].name).val();
 		}
-		active.createNEinNetwork(rid,classType,vertex,ridfrom,ridto,properties);
+		try{
+			active.createNEinNetwork(rid,classType,vertex,ridfrom,ridto,properties);
+		}catch(err){
+			createErrorMsg(err);
+		}
+		
 	});
 	console.log(active);
 	$("#degree").on("click",function(){//OK
@@ -199,38 +224,66 @@ $( document ).ready(function() {
 		var degreeDist = active.getDegreeDistribution(edgeType,active.directed);
 		console.log(degreeDist);
 		$("#graphModal .modal-body").empty();
+		var avgDegree = active.getAvgDegree(edgeType);
 		if(active.directed){
-			var graphIn = new HistogramGraph("#graphModal",degreeDist.in,"x","y","in Degree distribution","k(in)","p(k)");
-			var graphOut = new HistogramGraph("#graphModal",degreeDist.out,"x","y","out Degree distribution","k(out)","p(k)");						
+			var dist = new DegreeDistribution(degreeDist.in,avgDegree,active.getGamma(edgeType));
+			dist.poissonDistribution();
+			//dist.powerLawDistribution();
+			degreeDist.in = dist.getData();
+			var graphIn = new HistogramGraph("#graphModal",degreeDist.in,"in Degree distribution","k(in)","p(k)",avgDegree);
+			var dist = new DegreeDistribution(degreeDist.out,avgDegree,active.getGamma(edgeType));
+			dist.poissonDistribution();
+			//dist.powerLawDistribution();
+			degreeDist.out = dist.getData();
+			var graphOut = new HistogramGraph("#graphModal",degreeDist.out,"out Degree distribution","k(out)","p(k)",avgDegree);						
 			graphOut.plot();
 			graphIn.plot();
 		}else{
-			var graph = new HistogramGraph("#graphModal",degreeDist,"x","y","Degree Distribution","k","p(k)");
+			var dist = new DegreeDistribution(degreeDist,avgDegree,active.getGamma(edgeType));
+			dist.poissonDistribution();
+			//dist.powerLawDistribution();
+			degreeDist = dist.getData();
+			var graph = new HistogramGraph("#graphModal",degreeDist,"Degree Distribution","k","p(k)",[]);
 			graph.plot();
 		}
-		
 	});
 	$("#diameter").on("click",function(){//OK
 		var edgeType = active.options.edgeUsed;
 		var diameter = active.getDiameter(edgeType)
 		$("#graphModal .modal-body").empty();
 		console.log(diameter);
+		$(".distance").empty();
+		$(".distance").append("<li class='list-group-item'>Distance:"+diameter.dist+"</li>");
 		for(p in diameter.path){
+			var path = "";
 			for(i in diameter.path[p]){
+				if(i==0){
+					path+=diameter.path[p][i];
+				}else{
+					path+="->"+diameter.path[p][i];
+				}
 				if(i==0 || i ==diameter.path[p].length-1){
 					$("circle[rid='"+diameter.path[p][i]+"']").attr("fill","green");
 				}else{
 					$("circle[rid='"+diameter.path[p][i]+"']").attr("fill","red");
 				}
+				
 			}
+			$(".distance").append("<li class='list-group-item'>Path ("+(parseInt(p)+1)+"):<br/>"+path+"</li>");
 		}
 	});
 	$("#CC").on("click",function(){//OK
 		var edgeType = active.options.edgeUsed;
+		var avgDegree = active.getAvgDegree(edgeType)
 		var CCdist = active.getCCDistribution(edgeType)
+		var dist = new CCDistribution(CCdist,avgDegree,active.nodes.length);
+		var avgCC = CCdist.avg;
+		dist.RandomDistribution();
+		//dist.ScaleFreeDistribution();
+		CCdist = dist.getData();
 		console.log(CCdist);
 		$("#graphModal .modal-body").empty();
-		var graph = new HistogramGraph("#graphModal",CCdist,"x","y","Clustering Coefficient Distribution","CC","p(CC)");
+		var graph = new HistogramGraph("#graphModal",CCdist,"Clustering Coefficient Distribution","k","CC(k)",avgCC);
 		graph.plot();
 	});
 	$("#closeness").on("click",function(){
@@ -249,6 +302,25 @@ $( document ).ready(function() {
 	$("#betweenness").on("click",function(){
 		var edgeType = active.options.edgeUsed;
 		var betweenness = active.getBetweenness(edgeType);
+		$("#graphModal .modal-body").empty();
 		console.log(betweenness);
+		$("#graphModal .modal-body").append("<div class='table-responsive'>"+
+													"<table class='table'><tbody><tr><td>ID</td><td>Betweeness</td></tr></tbody></table>"+
+												"</div>");
+		var table = $("#graphModal .modal-body table tbody")
+		for(i in betweenness){
+			table.append("<tr><td>"+i+"</td><td>"+betweenness[i]+"</td></tr>");
+		}
+	});
+	$("#NodeSizePropertySelect").on("change",function(){
+		var value = this.options[this.selectedIndex].value
+		active.changeNodeSizeAttribute(value)
 	});
 });
+
+function createErrorMsg(err){
+	$(".errormsgdiv").html("<div class='errormsg alert alert-danger fade in'>"+
+						  err+
+						  "<a href='#' class='close' data-dismiss='alert' aria-label='close'>&times;</a>"+
+						"</div>")
+}
