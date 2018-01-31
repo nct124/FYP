@@ -1,5 +1,9 @@
 var active;
-$( document ).ready(function() {	
+
+$( document ).ready(function() {
+	/*ajax("http://localhost:8080/getCloseness",{test:"{value:'hi'}"},function(result){
+		console.log(result);
+	})*/
 	var graph1 = $("#graph1").GraphVisualizer({
 		rdy:function(){
 			active.schemas;
@@ -36,9 +40,6 @@ $( document ).ready(function() {
 				var index = this.options[this.selectedIndex].value;
 				$("#edgeLabelAttributeSelect").html("");
 				$("#edgeLabelAttributeSelect").append("<option value=''></option>");
-				console.log(index);
-				console.log(active.schemas.edge[index]);
-				console.log(active.schemas);
 				for(var i=0;i<active.schemas.edge[index].properties.length;i++){
 					$("#edgeLabelAttributeSelect").append("<option value='"+active.schemas.edge[index].properties[i].name+"'>"+active.schemas.edge[index].properties[i].name+"</option>");
 				}
@@ -77,7 +78,7 @@ $( document ).ready(function() {
 	$("#queryBtn").on("click",function(){
 		var query = $("#query").val();
 		active.queryDatabase(query,function(){
-			var property = active.loadNetworkProperties();
+			var property = active.loadBasicNetworkProperties();
 			console.log(property);
 			$("#NetD .properties").html("<div class='table-responsive'>"+
 													"<table class='table'><tbody></tbody></table>"+
@@ -165,7 +166,7 @@ $( document ).ready(function() {
 					}
 					nodes[node1]["out_E"].push(temp);
 					if(nodes[node2]==undefined){
-						nodes[node2] = {"@rid":node2,"@class":"V",}
+						nodes[node2] = {"@rid":node2,"@class":"V"}
 					}
 					if(nodes[node2]["in_E"]==undefined){
 						nodes[node2]["in_E"] = [];
@@ -177,20 +178,17 @@ $( document ).ready(function() {
 				var edgesArr = Object.keys(edges).map(function (key) { return edges[key]; });
 				var json = {result:nodesArr.concat(edgesArr)};//{nodes:nodesArr,links:edgesArr}
 				active.uploadNetwork(json,function(){
-					var property = active.loadNetworkProperties();
-					console.log(property);
+					var property = active.loadBasicNetworkProperties();
 					$("#NetD .properties").html("<div class='table-responsive'>"+
-															"<table class='table'><tbody><tr><td>ID</td><td>Closeness</td></tr></tbody></table>"+
+															"<table class='table'><tbody></tbody></table>"+
 														"</div>");
 					var table = $("#NetD .properties table tbody")
 					for(i in property){
 						table.append("<tr><td>"+i+"</td><td>"+property[i]+"</td></tr>");
 					}
 				});
-				document.getElementById("uploadNetworkBtn").value="";
-				
+				document.getElementById("uploadNetworkBtn").value="";	
 			}
-			
 		}
 		reader.readAsText(file);	
 	});
@@ -214,111 +212,132 @@ $( document ).ready(function() {
 		try{
 			active.createNEinNetwork(rid,classType,vertex,ridfrom,ridto,properties);
 		}catch(err){
-			createErrorMsg(err);
+			displayErrorMsg(err);
 		}
 		
 	});
 	console.log(active);
 	$("#degree").on("click",function(){//OK
 		var edgeType = active.options.edgeUsed;
-		var degreeDist = active.getDegreeDistribution(edgeType,active.directed);
-		console.log(degreeDist);
-		$("#graphModal .modal-body").empty();
-		var avgDegree = active.getAvgDegree(edgeType);
-		if(active.directed){
-			var dist = new DegreeDistribution(degreeDist.in,avgDegree,active.getGamma(edgeType));
-			dist.poissonDistribution();
-			//dist.powerLawDistribution();
-			degreeDist.in = dist.getData();
-			var graphIn = new HistogramGraph("#graphModal",degreeDist.in,"in Degree distribution","k(in)","p(k)",avgDegree);
-			var dist = new DegreeDistribution(degreeDist.out,avgDegree,active.getGamma(edgeType));
-			dist.poissonDistribution();
-			//dist.powerLawDistribution();
-			degreeDist.out = dist.getData();
-			var graphOut = new HistogramGraph("#graphModal",degreeDist.out,"out Degree distribution","k(out)","p(k)",avgDegree);						
-			graphOut.plot();
-			graphIn.plot();
-		}else{
-			var dist = new DegreeDistribution(degreeDist,avgDegree,active.getGamma(edgeType));
-			dist.poissonDistribution();
-			//dist.powerLawDistribution();
-			degreeDist = dist.getData();
-			var graph = new HistogramGraph("#graphModal",degreeDist,"Degree Distribution","k","p(k)",[]);
-			graph.plot();
-		}
+		var degreeDist = active.getDegreeDistribution(edgeType,active.directed,function(degreeDist){
+			console.log(degreeDist);
+			$("#graphModal .modal-body").empty();
+			var avgDegree = active.getAvgDegree(edgeType);
+			if(active.directed){
+				var dist = new DegreeDistribution(degreeDist.in,avgDegree,active.getGamma(edgeType));
+				dist.poissonDistribution();
+				//dist.powerLawDistribution();
+				degreeDist.in = dist.getData();
+				var graphIn = new HistogramGraph("#graphModal",degreeDist.in,"in Degree distribution","k(in)","p(k)",avgDegree);
+				var dist = new DegreeDistribution(degreeDist.out,avgDegree,active.getGamma(edgeType));
+				dist.poissonDistribution();
+				//dist.powerLawDistribution();
+				degreeDist.out = dist.getData();
+				var graphOut = new HistogramGraph("#graphModal",degreeDist.out,"out Degree distribution","k(out)","p(k)",avgDegree);						
+				graphOut.plot();
+				graphIn.plot();
+			}else{
+				var dist = new DegreeDistribution(degreeDist,avgDegree,active.getGamma(edgeType));
+				dist.poissonDistribution();
+				//dist.powerLawDistribution();
+				degreeDist = dist.getData();
+				var graph = new HistogramGraph("#graphModal",degreeDist,"Degree Distribution","k","p(k)",[]);
+				graph.plot();
+			}
+		});
 	});
 	$("#diameter").on("click",function(){//OK
 		var edgeType = active.options.edgeUsed;
-		var diameter = active.getDiameter(edgeType)
-		$("#graphModal .modal-body").empty();
-		console.log(diameter);
-		$(".distance").empty();
-		$(".distance").append("<li class='list-group-item'>Distance:"+diameter.dist+"</li>");
-		for(p in diameter.path){
-			var path = "";
-			for(i in diameter.path[p]){
-				if(i==0){
-					path+=diameter.path[p][i];
-				}else{
-					path+="->"+diameter.path[p][i];
+		active.getDiameter(edgeType,function(diameter){
+			console.log(diameter);
+			$("#graphModal .modal-body").empty();
+			$(".distance").empty();
+			$(".distance").append("<li class='list-group-item'>Distance:"+diameter.dist+"</li>");
+			for(p in diameter.path){
+				var path = "";
+				for(i in diameter.path[p]){
+					if(i==0){
+						path+=diameter.path[p][i];
+					}else{
+						path+="->"+diameter.path[p][i];
+					}
+					if(i==0 || i ==diameter.path[p].length-1){
+						$("circle[rid='"+diameter.path[p][i]+"']").attr("fill","green");
+					}else{
+						$("circle[rid='"+diameter.path[p][i]+"']").attr("fill","red");
+					}
+					
 				}
-				if(i==0 || i ==diameter.path[p].length-1){
-					$("circle[rid='"+diameter.path[p][i]+"']").attr("fill","green");
-				}else{
-					$("circle[rid='"+diameter.path[p][i]+"']").attr("fill","red");
-				}
-				
+				$(".distance").append("<li class='list-group-item'>Path ("+(parseInt(p)+1)+"):<br/>"+path+"</li>");
 			}
-			$(".distance").append("<li class='list-group-item'>Path ("+(parseInt(p)+1)+"):<br/>"+path+"</li>");
-		}
+		})
 	});
 	$("#CC").on("click",function(){//OK
 		var edgeType = active.options.edgeUsed;
-		var avgDegree = active.getAvgDegree(edgeType)
-		var CCdist = active.getCCDistribution(edgeType)
-		var dist = new CCDistribution(CCdist,avgDegree,active.nodes.length);
-		var avgCC = CCdist.avg;
-		dist.RandomDistribution();
-		//dist.ScaleFreeDistribution();
-		CCdist = dist.getData();
-		console.log(CCdist);
-		$("#graphModal .modal-body").empty();
-		var graph = new HistogramGraph("#graphModal",CCdist,"Clustering Coefficient Distribution","k","CC(k)",avgCC);
-		graph.plot();
+		active.getCCDistribution(edgeType,function(result){
+			var CCdist = result.data;
+			var edgeType = active.options.edgeUsed;
+			var avgDegree = active.getAvgDegree(edgeType)
+			var noOfNodes = active.nodes.length;
+			var dist = new CCDistribution(CCdist,avgDegree,active.nodes.length);
+			var avgCC = result.avg;
+			dist.RandomDistribution();
+			//dist.ScaleFreeDistribution();
+			CCdist = dist.getData();
+			$("#graphModal .modal-body").empty();
+			var graph = new HistogramGraph("#graphModal",CCdist,"Clustering Coefficient Distribution","k","CC(k)",avgCC);
+			graph.plot();
+		})
 	});
 	$("#closeness").on("click",function(){
 		var edgeType = active.options.edgeUsed;
-		var closeness = active.getCloseness(edgeType);
-		$("#graphModal .modal-body").empty();
-		console.log(closeness);
-		$("#graphModal .modal-body").append("<div class='table-responsive'>"+
-													"<table class='table'><tbody><tr><td>ID</td><td>Closeness</td></tr></tbody></table>"+
-												"</div>");
-		var table = $("#graphModal .modal-body table tbody")
-		for(i in closeness){
-			table.append("<tr><td>"+i+"</td><td>"+closeness[i]+"</td></tr>");
-		}
+		active.getCloseness(edgeType,function(closeness){
+			$("#graphModal .modal-body").empty();
+			console.log(closeness);
+			$("#graphModal .modal-body").append("<div class='table-responsive'>"+
+														"<table class='table'><tbody><tr><td>ID</td><td>Closeness</td></tr></tbody></table>"+
+													"</div>");
+			var table = $("#graphModal .modal-body table tbody")
+			for(i in closeness){
+				table.append("<tr><td>"+i+"</td><td>"+closeness[i]+"</td></tr>");
+			}
+		});
 	});
 	$("#betweenness").on("click",function(){
 		var edgeType = active.options.edgeUsed;
-		var betweenness = active.getBetweenness(edgeType);
-		$("#graphModal .modal-body").empty();
-		console.log(betweenness);
-		$("#graphModal .modal-body").append("<div class='table-responsive'>"+
-													"<table class='table'><tbody><tr><td>ID</td><td>Betweeness</td></tr></tbody></table>"+
-												"</div>");
-		var table = $("#graphModal .modal-body table tbody")
-		for(i in betweenness){
-			table.append("<tr><td>"+i+"</td><td>"+betweenness[i]+"</td></tr>");
-		}
+		active.getBetweenness(edgeType,function(betweenness){
+			$("#graphModal .modal-body").empty();
+			console.log(betweenness);
+			$("#graphModal .modal-body").append("<div class='table-responsive'>"+
+														"<table class='table'><tbody><tr><td>ID</td><td>Betweeness</td></tr></tbody></table>"+
+													"</div>");
+			var table = $("#graphModal .modal-body table tbody")
+			for(i in betweenness){
+				table.append("<tr><td>"+i+"</td><td>"+betweenness[i]+"</td></tr>");
+			}
+		});
 	});
 	$("#NodeSizePropertySelect").on("change",function(){
 		var value = this.options[this.selectedIndex].value
 		active.changeNodeSizeAttribute(value)
 	});
+	$("#pagerank").on("click",function(){
+		var edgeType = active.options.edgeUsed;
+		active.getPageRank(edgeType,function(pagerank){
+			$("#graphModal .modal-body").empty();
+			console.log(pagerank);
+			$("#graphModal .modal-body").append("<div class='table-responsive'>"+
+														"<table class='table'><tbody><tr><td>ID</td><td>Page Rank</td></tr></tbody></table>"+
+													"</div>");
+			var table = $("#graphModal .modal-body table tbody")
+			for(i in pagerank){
+				table.append("<tr><td>"+i+"</td><td>"+pagerank[i].C+"</td></tr>");
+			}
+		});
+	});
 });
 
-function createErrorMsg(err){
+function displayErrorMsg(err){
 	$(".errormsgdiv").html("<div class='errormsg alert alert-danger fade in'>"+
 						  err+
 						  "<a href='#' class='close' data-dismiss='alert' aria-label='close'>&times;</a>"+

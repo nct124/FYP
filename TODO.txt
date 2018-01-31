@@ -41,7 +41,7 @@ TODO
 --optimize displaying
 4)find common json formats of existing graph to be supported by the upload function
 --done 1(show prof to cfm which to do)
----1.Support all format
+---1.Support all format(THIS)
 ---2.Make the user follow my format
 15)do something about the export network
 
