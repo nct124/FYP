@@ -783,6 +783,7 @@
 				callback(result);
 			},function(error){
 				console.log("Diameter error");
+				displayErrorMsg("Error might be due to a directed network is shown to be a undirected network")
 			});
 		},
 		getPageRank: function(edgeType,callback){
@@ -1116,6 +1117,17 @@
 			}
 			
 			json['weight'] = 0
+			
+			//get all the edges 
+			for(i in this.schemas.edge){
+				var node = this.nodeMap[rid];
+				if(node["in_"+this.schemas.edge[i].name]!=undefined){
+					json["in_"+this.schemas.edge[i].name] = node["in_"+this.schemas.edge[i].name];
+				}
+				if(node["out_"+this.schemas.edge[i].name]!=undefined){
+					json["out_"+this.schemas.edge[i].name] = node["out_"+this.schemas.edge[i].name];
+				}
+			}
 			var newGraph = {nodes:[json],links:[]}
 			var removeGraph = {nodes:[{"@rid":rid}],links:[]};
 			//update map before reseting graph

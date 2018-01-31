@@ -210,7 +210,12 @@ $( document ).ready(function() {
 			properties[property[i].name] = $("#class_"+property[i].name).val();
 		}
 		try{
-			active.createNEinNetwork(rid,classType,vertex,ridfrom,ridto,properties);
+			if(vertex){
+				active.createNodeinNetwork(rid,classType,properties);
+			}else{
+				active.createEdgeinNetwork(rid,classType,ridfrom,ridto,properties);
+			}
+			//active.createNEinNetwork(rid,classType,vertex,ridfrom,ridto,properties);
 		}catch(err){
 			displayErrorMsg(err);
 		}

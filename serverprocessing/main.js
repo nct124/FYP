@@ -164,7 +164,6 @@ app.post('/getCCDistribution', function(req, res){
 });
 app.post('/getPageRank', function(req, res){
 	//PR(i) = sum of (PR(j->i))/(noOfOutGoingEdges(j));
-	var neighborMap = req.body.neighborMap;
 	var nodeMap = req.body.nodeMap;
 	var edgeMap = req.body.edgeMap;
 	var directed = req.body.directed;
@@ -189,6 +188,11 @@ app.post('/getPageRank', function(req, res){
 			if(node["in_"+edgeType]!=undefined){
 				edges = node["in_"+edgeType];
 			}
+			if(directed==true){
+				if(node["out_"+edgeType]!=undefined){
+					edges = edges.concat(node["in_"+edgeType]);
+				}
+			}
 			for(j in edges){
 				var eid = edges[j];
 				var innode = nodeMap[edgeMap[eid].out];
@@ -196,6 +200,11 @@ app.post('/getPageRank', function(req, res){
 				var noOfOutGoingEdges = 0;
 				if(innode["out_"+edgeType]!=undefined){
 					noOfOutGoingEdges += innode["out_"+edgeType].length;
+				}
+				if(directed==true){
+					if(innode["in_"+edgeType]!=undefined){
+						noOfOutGoingEdges += innode["in_"+edgeType].length;
+					}
 				}
 				var ePR = (prevPR)/(noOfOutGoingEdges);
 				cPR+=ePR;
