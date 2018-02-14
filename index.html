@@ -70,12 +70,12 @@
 									<label for="OverallEdgeClassSelect">Edge Class:</label>
 									<select id="OverallEdgeClassSelect" class="form-control"></select>
 								</div>
-								<input type="button" id="degree" data-toggle="modal" value="Degree" data-target="#graphModal"/>
-								<input type="button" id="CC" data-toggle="modal" value="CC" data-target="#graphModal"/>
+								<input type="button" id="degree" data-toggle="modal" value="Degree"/>
+								<input type="button" id="CC" data-toggle="modal" value="CC" />
 								<input type="button" id="diameter" value="Diameter"/>
-								<input type="button" id="closeness" data-toggle="modal" value="Closeness" data-target="#graphModal"/>
-								<input type="button" id="betweenness" data-toggle="modal" value="Betweenness" data-target="#graphModal"/>
-								<input type="button" id="pagerank" data-toggle="modal" value="PageRank" data-target="#graphModal"/>
+								<input type="button" id="closeness" data-toggle="modal" value="Closeness" />
+								<input type="button" id="betweenness" data-toggle="modal" value="Betweenness" />
+								<input type="button" id="pagerank" data-toggle="modal" value="PageRank"/>
 								<br/><ul class="list-group distance">
 									
 								</ul>
@@ -167,6 +167,31 @@
 										<option value="pagerank">Page Rank</option>
 									</select>
 								</div>
+								<h5>Clustering</h5>
+								<div class="form-group">
+									<label for="ClusterBySelect" class="col-form-label">Cluster Method:</label>
+									<select id="ClusterBySelect" class="form-control">
+										<option value="off">Off</option>
+										<option value="degree">Degree</option>
+										<option value="CC">Clustering Coefficient</option>
+										<option value="closeness">Closeness</option>
+										<option value="attribute">Attribute</option>
+									</select>
+									<div class="ClusterByNodeClassSelect">
+										<label for="ClusterByNodeClassSelect" class="col-form-label">Class:</label>
+										<select id="ClusterByNodeClassSelect" class="form-control">
+											<option value=""></option>
+										</select>
+									</div>
+									<div class="ClusterByNodeAttributeSelect">
+										<label for="ClusterByNodeAttributeSelect" class="col-form-label">Attribute:</label>
+										<select id="ClusterByNodeAttributeSelect" class="form-control">
+											<option value=""></option>
+										</select>
+									</div>
+									<label for="NumOfClusterSelect"class="col-form-label">Number of Clusters:</label>
+									<input type="number" id="NumOfClusterSelect" class="form-control"/>
+								</div>
 							</div>
 						</div>
 					</div>
@@ -180,6 +205,9 @@
 			
 		</div>
 	</nav>
+	<div class="loaderDiv">
+		<div class="loader"></div>
+	</div>
 	<div class="modal fade" id="graphModal" role="dialog">
 		<div class="modal-dialog modal-lg">
 			<div class="modal-content">

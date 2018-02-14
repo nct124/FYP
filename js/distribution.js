@@ -2,7 +2,6 @@ function DegreeDistribution(data,avgDegree,gamma) {
 	this.data = data; 
 	this.avgDegree = avgDegree;
 	this.gamma = gamma;
-	console.log("avgDegree:"+avgDegree+" gamma:"+gamma);
 	this.poissonDistribution = function(){
 		for(i in this.data){
 			var k = this.data[i]["x"];
@@ -16,7 +15,6 @@ function DegreeDistribution(data,avgDegree,gamma) {
 			if(i!=0){
 				var k = data[i]["x"];
 				sum+= Math.pow(i, (-this.gamma));
-				//console.log(i+":"+sum);
 			}
 		}
 		return sum;

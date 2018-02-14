@@ -7,12 +7,24 @@ $( document ).ready(function() {
 	var graph1 = $("#graph1").GraphVisualizer({
 		rdy:function(){
 			active.schemas;
+			//clearing
 			$("#nodeLabelClassSelect").html("");
 			$("#nodeLabelClassSelect").append("<option value=''></option>");
+			$("#OverallEdgeClassSelect").empty();
+			$("#OverallEdgeClassSelect").append("<option value=''></option>");
+			$("#edgeLabelClassSelect").html("");
+			$("#edgeClassSelect").html("");
+			$("#edgeLabelClassSelect").append("<option value=''></option>");
+			$("#edgeClassSelect").append("<option value=''></option>");
+			$("#ClusterByNodeClassSelect").html("");
+			$("#ClusterByNodeClassSelect").append("<option value=''></option>");
 			
+			//load node class
 			for(var i=0;i<active.schemas.vertex.length;i++){
 				$("#nodeLabelClassSelect").append("<option value='"+i+"'>"+active.schemas.vertex[i].name+"</option>");
+				$("#ClusterByNodeClassSelect").append("<option value='"+i+"'>"+active.schemas.vertex[i].name+"</option>");
 			}
+			//node label
 			$("#nodeLabelClassSelect").on("change",function(){
 				var index = this.options[this.selectedIndex].value;
 				$("#nodeLabelAttributeSelect").html("");
@@ -28,14 +40,13 @@ $( document ).ready(function() {
 				active.changeNodeLabel(label,active.schemas.vertex[index].name)
 			});
 			
-			$("#edgeLabelClassSelect").html("");
-			$("#edgeClassSelect").html("");
-			$("#edgeLabelClassSelect").append("<option value=''></option>");
-			$("#edgeClassSelect").append("<option value=''></option>");
+			//load edge class
 			for(var i=0;i<active.schemas.edge.length;i++){
 				$("#edgeLabelClassSelect").append("<option value='"+i+"'>"+active.schemas.edge[i].name+"</option>");
 				$("#edgeClassSelect").append("<option value='"+i+"'>"+active.schemas.edge[i].name+"</option>");
+				$("#OverallEdgeClassSelect").append("<option value='"+active.schemas.edge[i].name+"'>"+active.schemas.edge[i].name+"</option>");
 			}
+			//edge label
 			$("#edgeLabelClassSelect").on("change",function(){
 				var index = this.options[this.selectedIndex].value;
 				$("#edgeLabelAttributeSelect").html("");
@@ -50,6 +61,7 @@ $( document ).ready(function() {
 				active.changeEdgeLabel(label,active.schemas.edge[index].name)
 			});
 			
+			//weightage
 			$("#edgeClassSelect").on("change",function(){
 				var index = this.options[this.selectedIndex].value;
 				$("#edgeWeightageAttributeSelect").html("");
@@ -63,13 +75,35 @@ $( document ).ready(function() {
 				var attribute = this.options[this.selectedIndex].value;
 				active.changeWeightageAttribute(attribute,active.schemas.edge[index].name);
 			});
-			$("#OverallEdgeClassSelect").empty();
-			$("#OverallEdgeClassSelect").append("<option value=''></option>");
-			for(var i=0;i<active.schemas.edge.length;i++){
-				$("#OverallEdgeClassSelect").append("<option value='"+active.schemas.edge[i].name+"'>"+active.schemas.edge[i].name+"</option>");
-			}
+			
+			//for the network metric calculation
 			$("#OverallEdgeClassSelect").on("change",function(){
 				active.changeOverallEdgeClass(this.options[this.selectedIndex].value);
+			});
+			
+			//clustering
+			$("#ClusterBySelect").on("change",function(){
+				if(this.options[this.selectedIndex].value=="attribute"){
+					$(".ClusterByNodeClassSelect").css("display","block");
+					$(".ClusterByNodeAttributeSelect").css("display","block");
+				}else{
+					$(".ClusterByNodeClassSelect").css("display","none");
+					$(".ClusterByNodeAttributeSelect").css("display","none");
+				}
+				active.changeClusteringMethod(this.options[this.selectedIndex].value);
+			})
+			$("#ClusterByNodeClassSelect").on("change",function(){
+				var index = this.options[this.selectedIndex].value;
+				$("#ClusterByNodeAttributeSelect").html("");
+				$("#ClusterByNodeAttributeSelect").append("<option value=''></option>");
+				for(var i=0;i<active.schemas.vertex[index].properties.length;i++){
+					$("#ClusterByNodeAttributeSelect").append("<option value='"+active.schemas.vertex[index].properties[i].name+"'>"+active.schemas.vertex[index].properties[i].name+"</option>");
+				}
+			});
+			$("#ClusterByNodeAttributeSelect").on("change",function(){
+				var index = document.getElementById("ClusterByNodeClassSelect").options[document.getElementById("ClusterByNodeClassSelect").selectedIndex].value;
+				var attribute = this.options[this.selectedIndex].value;
+				active.changeClusteringClassAttribute(active.schemas.vertex[index].name,attribute)
 			});
 		}
 	});
@@ -155,24 +189,26 @@ $( document ).ready(function() {
 				var arr = raw.split("\n");
 				for(i in arr){
 					var temp = arr[i];
-					var node12 = temp.split(" ");
-					var node1 = node12[0];
-					var node2 = node12[1].trim();
-					if(nodes[node1]==undefined){
-						nodes[node1] = {"@rid":node1,"@class":"V",}
+					if(temp.charAt(0)!="#"){
+						var node12 = temp.split(" ");
+						var node1 = node12[0];
+						var node2 = node12[1].trim();
+						if(nodes[node1]==undefined){
+							nodes[node1] = {"@rid":node1,"@class":"V",}
+						}
+						if(nodes[node1]["out_E"]==undefined){
+							nodes[node1]["out_E"] = [];
+						}
+						nodes[node1]["out_E"].push(temp);
+						if(nodes[node2]==undefined){
+							nodes[node2] = {"@rid":node2,"@class":"V"}
+						}
+						if(nodes[node2]["in_E"]==undefined){
+							nodes[node2]["in_E"] = [];
+						}
+						nodes[node2]["in_E"].push(temp);
+						edges[temp] = {"@rid":temp,"@class":"E",in:node2,out:node1,source:nodes[node1],target:nodes[node2]};
 					}
-					if(nodes[node1]["out_E"]==undefined){
-						nodes[node1]["out_E"] = [];
-					}
-					nodes[node1]["out_E"].push(temp);
-					if(nodes[node2]==undefined){
-						nodes[node2] = {"@rid":node2,"@class":"V"}
-					}
-					if(nodes[node2]["in_E"]==undefined){
-						nodes[node2]["in_E"] = [];
-					}
-					nodes[node2]["in_E"].push(temp);
-					edges[temp] = {"@rid":temp,"@class":"E",in:node2,out:node1,source:nodes[node1],target:nodes[node2]};
 				}
 				var nodesArr = Object.keys(nodes).map(function (key) { return nodes[key]; });
 				var edgesArr = Object.keys(edges).map(function (key) { return edges[key]; });
@@ -209,16 +245,16 @@ $( document ).ready(function() {
 		for(var i=0;i<property.length;i++){
 			properties[property[i].name] = $("#class_"+property[i].name).val();
 		}
-		try{
+		//try{
 			if(vertex){
 				active.createNodeinNetwork(rid,classType,properties);
 			}else{
 				active.createEdgeinNetwork(rid,classType,ridfrom,ridto,properties);
 			}
 			//active.createNEinNetwork(rid,classType,vertex,ridfrom,ridto,properties);
-		}catch(err){
-			displayErrorMsg(err);
-		}
+		//}catch(err){
+			//displayErrorMsg(err);
+		//}
 		
 	});
 	console.log(active);
@@ -231,12 +267,12 @@ $( document ).ready(function() {
 			if(active.directed){
 				var dist = new DegreeDistribution(degreeDist.in,avgDegree,active.getGamma(edgeType));
 				dist.poissonDistribution();
-				//dist.powerLawDistribution();
+				dist.powerLawDistribution();
 				degreeDist.in = dist.getData();
 				var graphIn = new HistogramGraph("#graphModal",degreeDist.in,"in Degree distribution","k(in)","p(k)",avgDegree);
 				var dist = new DegreeDistribution(degreeDist.out,avgDegree,active.getGamma(edgeType));
 				dist.poissonDistribution();
-				//dist.powerLawDistribution();
+				dist.powerLawDistribution();
 				degreeDist.out = dist.getData();
 				var graphOut = new HistogramGraph("#graphModal",degreeDist.out,"out Degree distribution","k(out)","p(k)",avgDegree);						
 				graphOut.plot();
@@ -244,11 +280,13 @@ $( document ).ready(function() {
 			}else{
 				var dist = new DegreeDistribution(degreeDist,avgDegree,active.getGamma(edgeType));
 				dist.poissonDistribution();
-				//dist.powerLawDistribution();
+				dist.powerLawDistribution();
 				degreeDist = dist.getData();
-				var graph = new HistogramGraph("#graphModal",degreeDist,"Degree Distribution","k","p(k)",[]);
+				console.log(degreeDist);
+				var graph = new HistogramGraph("#graphModal",degreeDist,"Degree Distribution","k","p(k)",avgDegree);
 				graph.plot();
 			}
+			$("#graphModal").modal("show");
 		});
 	});
 	$("#diameter").on("click",function(){//OK
@@ -292,6 +330,7 @@ $( document ).ready(function() {
 			$("#graphModal .modal-body").empty();
 			var graph = new HistogramGraph("#graphModal",CCdist,"Clustering Coefficient Distribution","k","CC(k)",avgCC);
 			graph.plot();
+			$("#graphModal").modal("show");
 		})
 	});
 	$("#closeness").on("click",function(){
@@ -306,6 +345,7 @@ $( document ).ready(function() {
 			for(i in closeness){
 				table.append("<tr><td>"+i+"</td><td>"+closeness[i]+"</td></tr>");
 			}
+			$("#graphModal").modal("show");
 		});
 	});
 	$("#betweenness").on("click",function(){
@@ -320,6 +360,7 @@ $( document ).ready(function() {
 			for(i in betweenness){
 				table.append("<tr><td>"+i+"</td><td>"+betweenness[i]+"</td></tr>");
 			}
+			$("#graphModal").modal("show");
 		});
 	});
 	$("#NodeSizePropertySelect").on("change",function(){
@@ -338,6 +379,7 @@ $( document ).ready(function() {
 			for(i in pagerank){
 				table.append("<tr><td>"+i+"</td><td>"+pagerank[i].C+"</td></tr>");
 			}
+			$("#graphModal").modal("show");
 		});
 	});
 });

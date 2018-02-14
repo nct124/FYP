@@ -6,13 +6,13 @@ const app = express()
 
 app.use(bodyParser.urlencoded({
         extended: true,
-     parameterLimit: 10000,
-     limit: 1024 * 1024 * 10
+     parameterLimit: 10000000,
+     limit: 1024 * 1024 * 1024 * 1024 * 10
 }));
 app.use(bodyParser.json({
         extended: true,
-     parameterLimit: 10000,
-     limit: 1024 * 1024 * 10
+     parameterLimit: 10000000,
+     limit: 1024 * 1024 * 1024 * 1024 * 10
 }));
 // Add headers
 app.use(function (req, res, next) {
@@ -215,7 +215,6 @@ app.post('/getPageRank', function(req, res){
 			PR[id].P = PR[id].C
 		}
 	}
-	
 	res.send(PR);
 });
 app.post('/getBetweenness', function(req, res){
