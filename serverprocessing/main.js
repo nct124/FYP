@@ -33,7 +33,7 @@ app.post('/getDegreeDistribution', function(req, res){
 	var directed = req.body.directed;
 	var edgeType = req.body.edgeType;
 	var data = {};
-	if (directed == true) {
+	if (directed=="true") {
 		data.out = {};
 		data.in = {};
 	}
@@ -42,7 +42,7 @@ app.post('/getDegreeDistribution', function(req, res){
 		n++;
 		var node = nodes[i];
 		var degree = 0;
-		if (directed== true) {
+		if (directed== "true") {
 			degree = lib.getDegree(node,'out_' + edgeType);
 			if (data.out[degree] == undefined) {
 				data.out[degree] = 0;
@@ -63,7 +63,7 @@ app.post('/getDegreeDistribution', function(req, res){
 		}
 	}
 	var realData;
-	if (directed== true) {
+	if (directed== "true") {
 		realData = {};
 		realData.in = [];
 		realData.out = [];
@@ -188,7 +188,7 @@ app.post('/getPageRank', function(req, res){
 			if(node["in_"+edgeType]!=undefined){
 				edges = node["in_"+edgeType];
 			}
-			if(directed==true){
+			if(directed=="true"){
 				if(node["out_"+edgeType]!=undefined){
 					edges = edges.concat(node["in_"+edgeType]);
 				}
@@ -201,7 +201,7 @@ app.post('/getPageRank', function(req, res){
 				if(innode["out_"+edgeType]!=undefined){
 					noOfOutGoingEdges += innode["out_"+edgeType].length;
 				}
-				if(directed==true){
+				if(directed=="true"){
 					if(innode["in_"+edgeType]!=undefined){
 						noOfOutGoingEdges += innode["in_"+edgeType].length;
 					}

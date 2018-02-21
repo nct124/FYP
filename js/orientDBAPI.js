@@ -15,13 +15,15 @@
 			IDlink:"@rid",
 			schemaURL:"http://localhost:2480/function/Testing/classProperty/",
 			rdy:function(){},
-			radius:20,
+			radius:10,
 			distance:1000,
-			nodeClick:function(){},
-			edgeClick:function(){},
+			nodeClick:function(node){},
+			edgeClick:function(edge){},
 			clusteringMethod:"off",
 			noOfCluster:10,
-			clusteringClassAttribute:{}
+			clusteringClassAttribute:{},
+			filterType : "off",
+			filterCondition : 0
         };
 		$.extend(this.options, options);
 		this.nodes = [];
@@ -183,6 +185,14 @@
 			this.clusterMap={};
 			this.updateMapping();
 			this.resetGraph();
+			var property = this.loadBasicNetworkProperties();
+			$("#NetD .properties").html("<div class='table-responsive'>"+
+											"<table class='table'><tbody></tbody></table>"+
+										"</div>");
+			var table = $("#NetD .properties table tbody")
+			for(i in property){
+				table.append("<tr><td>"+i+"</td><td>"+property[i]+"</td></tr>");
+			}
 		},
 		updateMapping:function(){
 			//clear mapping
@@ -319,7 +329,13 @@
 			.selectAll("circle")
 			.data(this.displayNodes)
 			.enter().append("circle")
-			.attr("r", function(d){return (parent.options.radius+(parent.options.radius*d.weight));})
+			.attr("r", function(d){
+				if(d["@rid"].indexOf("cluster")==-1){
+					return (parent.options.radius+(parent.options.radius*d.weight));
+				}else{
+					return (parent.options.radius+(d.nodes.length));
+				}
+			})
 			.attr("rid",function(d) { return d["@rid"]})
 			.attr("fill", function(d) { return parent.nodeColor(d[parent.options.colorGroup]); })
 			.attr("stroke","black")
@@ -369,7 +385,15 @@
 			.style("font-size", "0.7em")
 			.on("mouseover",this.mouseover)
 			.on("mouseout",this.mouseout)
-			.text(function(d) { if(parent.options.nodeLabel[d['@class']]!=""){return d[parent.options.nodeLabel[d['@class']]]; }else{ return "";}});
+			.text(function(d) {
+				if(parent.options.nodeLabel[d['@class']]!=undefined&&parent.options.nodeLabel[d['@class']]!=""){
+					return d[parent.options.nodeLabel[d['@class']]]; 
+				}else if(parent.options.clusteringMethod=="attribute"&&d["@rid"].indexOf("cluster")>-1){
+					return d["@rid"];
+				}else{
+					return "";
+				}
+			});
 			
 			//edge labels
 			this.edgeText = this.svg.select(".wrapper").append("g").attr("class", "edgeLabels").selectAll("g")
@@ -550,60 +574,7 @@
 		initEdgeClick: function (edges){
 			var parent = this;
 			edges.on("click",function(edge,index){
-				parent.loadClass(false);
-				var formchild = $("#NED form div:nth-child(1)");
-				formchild.nextAll().remove();
-				var properties = parent.schemas.edge;
-				var classProperty;
-				for(var i=0;i<properties.length;i++){
-					if(properties[i].name==edge['@class']){
-						$("#classType")[0].selectedIndex = i+1;
-						classProperty = properties[i].properties;
-						break;
-					}
-				}
-				if(classProperty!=undefined){
-					for(var i=0;i<classProperty.length;i++){
-						formchild.after("<div class='form-group'>"+
-											"<label for='class_"+classProperty[i].name+"'>"+classProperty[i].name+":</label>"+
-											"<input type='text' value="+edge[classProperty[i].name]+" class='form-control' id='class_"+classProperty[i].name+"'>"+
-										"</div>");
-					}
-				}
-				$("#rid").val(edge['@rid']);
-				$("#ridfrom").val(edge['source']['@rid']);
-				$("#ridto").val(edge['target']['@rid']);
-				if(edge['@rid'].charAt(0)=="#" || edge['@class']!=""){
-					$("#CUbtn").val("Update");
-					$("#deletebtn").css("display","block");
-					$("#classType").attr("disabled","true");
-				}else{
-					$("#CUbtn").val("Create");
-					$("#deletebtn").css("display","none");
-					$("#classType").removeAttr("disabled");
-				}
-				//load metrics for the node
-				var nodekey = "#NED .table";
-				$(nodekey).html("");
-				$(nodekey).append("<tr><td>ID</td><td>"+edge['@rid']+"</td></tr>");
-				$(nodekey).append("<tr class='source'><td>Source</td><td>"+edge['out']+"</td></tr>");
-				$(nodekey).append("<tr class='target'><td>Target</td><td>"+edge['in']+"</td></tr>");
-				$(nodekey+" tr.source")
-				.hover(function(){
-					var rid = $(nodekey+" tr.source td:nth-child(2)").html();
-					$(".nodes circle[rid='"+rid+"']").attr("fill", "red");
-				},function(){
-					var rid = $(nodekey+" tr.source td:nth-child(2)").html();
-					$(".nodes circle[rid='"+rid+"']").attr("fill",parent.nodeColor(parent.nodeMap[rid][parent.options.colorGroup]));
-				});
-				$(nodekey+" tr.target")
-				.hover(function(){
-					var rid = $(nodekey+" tr.target td:nth-child(2)").html();
-					$(".nodes circle[rid='"+rid+"']").attr("fill", "red");
-				},function(){
-					var rid = $(nodekey+" tr.target td:nth-child(2)").html();
-					$(".nodes circle[rid='"+rid+"']").attr("fill",parent.nodeColor(parent.nodeMap[rid][parent.options.colorGroup]));
-				});
+				parent.options.edgeClick(edge);
 				//connected graph
 				for(var key in parent.visited){
 					//set back previously editted nodes
@@ -611,7 +582,6 @@
 						$("circle[rid='"+key+"']").attr("fill",parent.nodeColor(parent.nodeMap[key][parent.options.colorGroup]));
 					}
 				}
-				$("a[href='#NED']").tab("show");
 			});
 			return edges;
 		},
@@ -701,52 +671,7 @@
 					parent.clusterMap[node["@rid"]].expand.C = true;
 					parent.resetGraph();
 				}else{
-					//load values for editting
-					parent.loadClass(true);
-					var formchild = $("#NED form div:nth-child(1)");
-					formchild.nextAll().remove();
-					$("#classType").removeAttr("disabled");
-					var properties = parent.schemas.vertex;
-					var classProperty;
-					for(var i=0;i<properties.length;i++){
-						if(properties[i].name==node['@class']){
-							$("#classType")[0].selectedIndex = i+1;
-							$("#classType").attr("disabled","true");
-							classProperty = properties[i].properties;
-							break;
-						}
-					}
-					if(classProperty!=undefined){
-						for(var i=0;i<classProperty.length;i++){
-							//table.find("tr:first-child").after("<tr><td>"+classProperty[i].name+":</td><td><input type='text' value='"+node[classProperty[i].name]+"' id='class_"+classProperty[i].name+"'></td></tr>");
-							formchild.after("<div class='form-group'>"+
-												"<label for='class_"+classProperty[i].name+"'>"+classProperty[i].name+":</label>"+
-												"<input type='text' value="+node[classProperty[i].name]+" class='form-control' id='class_"+classProperty[i].name+"'>"+
-											"</div>");
-						}
-					}
-					$("#rid").val(node['@rid']);
-					if(node['@rid'].charAt(0)=="#" || node['@class']!=""){
-						$("#CUbtn").val("Update");
-						$("#deletebtn").css("display","block");
-					}else{
-						$("#CUbtn").val("Create");
-						$("#deletebtn").css("display","none");
-					}					
-					//load metrics for the node
-					var nodekey = "#NED .table";
-					$(nodekey).html("");
-					$(nodekey).append("<tr><td>ID</td><td>"+node['@rid']+"</td></tr>");
-					for(var i=0;i<parent.schemas.edge.length;i++){
-						if(node['in_'+parent.schemas.edge[i].name]!=undefined){
-							$(nodekey).append("<tr><td>"+parent.schemas.edge[i].name+" in Degree</td><td>"+node['in_'+parent.schemas.edge[i].name].length+"</td></tr>");
-						}
-						if(node['out_'+parent.schemas.edge[i].name]!=undefined){
-							$(nodekey).append("<tr><td>"+parent.schemas.edge[i].name+" out Degree</td><td>"+node['out_'+parent.schemas.edge[i].name].length+"</td></tr>");
-							$(nodekey).append("<tr><td>"+parent.schemas.edge[i].name+" CC</td><td>"+parent.calCC(node,parent.schemas.edge[i].name)+"</td></tr>");
-						}
-					}
-					
+					parent.options.nodeClick(node);
 					//connected graph
 					for(var key in parent.visited){
 						//set back previously editted nodes
@@ -764,8 +689,6 @@
 					
 					//distance
 					parent.clickedNode = {source:node['@rid']};
-					//load the NED tab
-					$("a[href='#NED']").tab("show");
 				}
 			});
 			return nodes;
@@ -869,7 +792,7 @@
 			});
 		},
 		getDegreeDistribution: function(edgeType,directed,callback){
-			var json = {nodeMap:this.nodeMap,directed:directed,edgeType:edgeType};
+			var json = {nodeMap:this.nodeMap,"directed":directed,"edgeType":edgeType};
 			var functionURL = "http://localhost:8080/getDegreeDistribution";
 			ajaxServer(functionURL,json,function(result){
 				callback(result);
@@ -902,7 +825,6 @@
 				}else{
 					cc = Nv/((neighbor.length)*(neighbor.length-1));
 				}
-				//console.log(cc+"="+Nv+"/"+(neighbor.length)+"*"+(neighbor.length-1));
 			}
 			return cc;
 		},
@@ -929,21 +851,30 @@
 			this.resetGraph();
 		},
 		resetGraph:function(){
-			if(this.options.clusteringMethod=="attribute"){
-				var net = this.clusterNetworkBasedOnAttribute(this.nodes,this.links,this.options.edgeUsed);
+			this.svg.selectAll("*").remove();
+			if(this.options.filterType!="off"){
+				var net = this.filterNetworkBasedOnAttribute(this.nodes,this.links,this.options.edgeUsed);
 				this.displayNodes = net.nodes;
 				this.displayLinks = net.edges;
-				this.checkExpand();
-			}else if(this.prevZoom<2&&this.options.clusteringMethod!="off"){
-				var net = this.clusterNetwork(this.nodes,this.links,this.options.edgeUsed);
-				this.displayNodes = net.nodes;
-				this.displayLinks = net.edges;
-				this.checkExpand();
 			}else{
 				this.displayNodes = this.nodes;
 				this.displayLinks = this.links;
 			}
-			this.svg.selectAll("*").remove();
+			if(this.options.clusteringMethod=="attribute"){
+				var net = this.clusterNetworkBasedOnAttribute(this.displayNodes,this.displayLinks,this.options.edgeUsed);
+				this.displayNodes = net.nodes;
+				this.displayLinks = net.edges;
+				this.checkExpand();
+			}else if(this.options.clusteringMethod!="off"){
+				var net = this.clusterNetwork(this.displayNodes,this.displayLinks,this.options.edgeUsed);
+				this.displayNodes = net.nodes;
+				this.displayLinks = net.edges;
+				this.checkExpand();
+			}else{
+				for(i in this.displayNodes){
+					this.displayNodes[i].cluster = undefined;
+				}
+			}
 			this.init();
 			
 			this.findDuplicateLinks();
@@ -1172,7 +1103,7 @@
 			var noOfNodes = 0;
 			var noOfEdges = 0;
 			//gamma
-			var gamma = this.getGamma(edgeType);
+			//var gamma = this.getGamma(edgeType);
 			//number of components
 			var components = 0;
 			var cMap = {};
@@ -1196,10 +1127,10 @@
 			}else{
 				density = (2*noOfEdges)/(noOfNodes*(noOfNodes-1))
 			}
-			var ret = {components:components,density:density,nodes:noOfNodes,edges:noOfEdges,gamma:gamma}
+			var ret = {components:components,density:density,nodes:noOfNodes,edges:noOfEdges}
 			return ret;
 		},
-		createNodeinNetwork: function(rid,classType,properties){
+		createNodeinNetwork: function(rid,classType,properties,callback){
 			var parent = this;
 			var json = {};
 			for (var key in properties) {
@@ -1228,31 +1159,12 @@
 			var newGraph = {nodes:[json],links:[]}
 			var removeGraph = {nodes:[{"@rid":rid}],links:[]};
 			//update map before reseting graph
+			
 			this.nodeMap[rid] = json;
 			this.updateGraph(newGraph,removeGraph)
-				
-			if(rid.charAt(0)=="#" || classType!=""){
-				$("#CUbtn").val("Update");
-				$("#deletebtn").css("display","block");
-			}else{
-				$("#CUbtn").val("Create");
-				$("#deletebtn").css("display","none");
-			}					
-			//load metrics for the node
-			var nodekey = "#NED .table";
-			$(nodekey).html("");
-			$(nodekey).append("<tr><td>ID</td><td>"+rid+"</td></tr>");
-			for(var i=0;i<this.schemas.edge.length;i++){
-				if(json['in_'+this.schemas.edge[i].name]!=undefined){
-					$(nodekey).append("<tr><td>"+this.schemas.edge[i].name+" in Degree</td><td>"+json['in_'+this.schemas.edge[i].name].length+"</td></tr>");
-				}
-				if(json['out_'+this.schemas.edge[i].name]!=undefined){
-					$(nodekey).append("<tr><td>"+this.schemas.edge[i].name+" out Degree</td><td>"+json['out_'+this.schemas.edge[i].name].length+"</td></tr>");
-					$(nodekey).append("<tr><td>"+this.schemas.edge[i].name+" CC</td><td>"+this.calCC(json,this.schemas.edge[i].name)+"</td></tr>");
-				}
-			}
+			callback(json,classType);
 		},
-		createEdgeinNetwork: function(rid,classType,ridfrom,ridto,properties){
+		createEdgeinNetwork: function(rid,classType,ridfrom,ridto,properties,callback){
 			var parent = this;
 			var json = {};
 			for (var key in properties) {
@@ -1298,37 +1210,7 @@
 						this.neighborMap[classType+"_"+ridto].push(ridfrom);
 					}	
 				}
-				if(rid.charAt(0)=="#" || classType!=""){
-					$("#CUbtn").val("Update");
-					$("#deletebtn").css("display","block");
-					$("#classType").attr("disabled","true");
-				}else{
-					$("#CUbtn").val("Create");
-					$("#deletebtn").css("display","none");
-					$("#classType").removeAttr("disabled");
-				}
-				//load metrics for the node
-				var nodekey = "#NED .table";
-				$(nodekey).html("");
-				$(nodekey).append("<tr><td>ID</td><td>"+rid+"</td></tr>");
-				$(nodekey).append("<tr class='source'><td>Source</td><td>"+ridfrom+"</td></tr>");
-				$(nodekey).append("<tr class='target'><td>Target</td><td>"+ridto+"</td></tr>");
-				$(nodekey+" tr.source")
-				.hover(function(){
-					var rid = $(nodekey+" tr.source td:nth-child(2)").html();
-					$(".nodes circle[rid='"+rid+"']").attr("fill", "red");
-				},function(){
-					var rid = $(nodekey+" tr.source td:nth-child(2)").html();
-					$(".nodes circle[rid='"+rid+"']").attr("fill",parent.nodeColor(parent.nodeMap[rid][parent.options.colorGroup]));
-				});
-				$(nodekey+" tr.target")
-				.hover(function(){
-					var rid = $(nodekey+" tr.target td:nth-child(2)").html();
-					$(".nodes circle[rid='"+rid+"']").attr("fill", "red");
-				},function(){
-					var rid = $(nodekey+" tr.target td:nth-child(2)").html();
-					$(".nodes circle[rid='"+rid+"']").attr("fill",parent.nodeColor(parent.nodeMap[rid][parent.options.colorGroup]));
-				});
+				callback(json,classType);
 			}else{
 				throw "Please create the nodes first.";
 			}
@@ -1613,7 +1495,6 @@
 					var net = parent.filterNetworkBasedOnAttribute(parent.nodes,parent.links,parent.options.edgeUsed);
 					parent.displayNodes = net.nodes;
 					parent.displayLinks = net.edges;
-					console.log(net)
 					if(parent.options.clusteringMethod=="attribute"){
 						var net = parent.clusterNetworkBasedOnAttribute(parent.displayNodes,parent.displayLinks,parent.options.edgeUsed);
 						parent.displayNodes = net.nodes;
@@ -1737,55 +1618,74 @@
 			}
 		},
 		filterNetworkBasedOnAttribute:function(nodes,edges,edgeType){
-			edgeType = "follows";
 			var network = {};
 			network.nodes = [];
 			network.edges = [];
-			var filterType = "degree";
-			var filterCondition = 1;
-			
-			//edgemap for normal edges
-			var nm = jQuery.extend(true, {}, this.edgeMap);
-			for(i in edges){
-				var edge = edges[i];
-				if(nm[edge["@rid"]]==undefined){
-					nm[edge["@rid"]] = edge;
+			if(this.options.filterType=="off"){
+				network.nodes = nodes;
+				network.edges = edges;
+			}else{
+				var filterType = this.options.filterType;
+				var filterCondition = this.options.filterCondition;
+				var CCs;
+				if(filterType=="closeness"){
+					this.getCloseness(edgeType,function(closeness){
+						CCs = closeness;
+					});
 				}
-			}
-			
-			for(i in nodes){
-				var node = nodes[i];
-				var attribute = 0;
-				if(filterType=="degree"){
-					attribute = node["out_"+edgeType].length;
-					if(this.directed==false){
-						attribute += node["in_"+edgeType].length;
+				
+				//edgemap for normal edges
+				var nm = jQuery.extend(true, {}, this.edgeMap);
+				for(i in edges){
+					var edge = edges[i];
+					if(nm[edge["@rid"]]==undefined){
+						nm[edge["@rid"]] = edge;
 					}
 				}
-				if(attribute>=filterCondition){
-					network.nodes.push(node);
-				}else{
-					for(j in this.schemas.edge){
-						var edgeClass = this.schemas.edge[j].name;
-						console.log(edgeClass);
-						if(node["out_"+edgeClass]!=undefined){
-							for(k in node["out_"+edgeClass]){
-								var edgeID = node["out_"+edgeClass][k];
-								delete nm[edgeID];
+				for(i in nodes){
+					var node = nodes[i];
+					var attribute = 0;
+					if(filterType=="degree"){
+						if(node["out_"+edgeType]!=undefined){
+							attribute = node["out_"+edgeType].length;
+							if(this.directed==false){
+								if(node["in_"+edgeType]!=undefined){
+									attribute += node["in_"+edgeType].length;
+								}
 							}
 						}
-						if(node["in_"+edgeClass]!=undefined){
-							for(k in node["in_"+edgeClass]){
-								var edgeID = node["in_"+edgeClass][k];
-								delete nm[edgeID];
+						
+					}else if(filterType=="CC"){
+						attribute = this.calCC(node,edgeType);
+					}else if(filterType=="closeness"){
+						attribute = CCs[node["@rid"]];
+					}
+					if(attribute>=filterCondition){
+						network.nodes.push(node);
+					}else{
+						for(j in this.schemas.edge){
+							var edgeClass = this.schemas.edge[j].name;
+							if(node["out_"+edgeClass]!=undefined){
+								for(k in node["out_"+edgeClass]){
+									var edgeID = node["out_"+edgeClass][k];
+									delete nm[edgeID];
+								}
+							}
+							if(node["in_"+edgeClass]!=undefined){
+								for(k in node["in_"+edgeClass]){
+									var edgeID = node["in_"+edgeClass][k];
+									delete nm[edgeID];
+								}
 							}
 						}
 					}
 				}
-			}
-			
-			for (i in nm){
-				network.edges.push(nm[i]);
+				
+				for (i in nm){
+					nm[i].source = nm[i].out;
+					nm[i].target = nm[i].in;
+					network.edges.push(nm[i]);
+				}
 			}
 			return network;
 		},
@@ -1800,12 +1700,10 @@
 			network.edges = [];
 			
 			//edgemap for normal edges
-			var nm = jQuery.extend(true, {}, this.edgeMap);
+			var nm = {};//jQuery.extend(true, {}, this.edgeMap);
 			for(i in edges){
 				var edge = edges[i];
-				if(nm[edge["@rid"]]==undefined){
-					nm[edge["@rid"]] = edge;
-				}
+				nm[edge["@rid"]] = edge;
 			}
 			var ce = {};
 			for(i in nodes){
@@ -1881,38 +1779,48 @@
 			network.nodes = [];
 			network.edges = [];
 			
+			var CCs;
+			if(metric=="closeness"){
+				this.getCloseness(edgeType,function(closeness){
+					CCs = closeness;
+				});
+			}
+			
 			for(i in nodes){
 				var node = nodes[i];
 				node.cluster = undefined;
 				var rid = node["@rid"];
-				if(this.neighborMap[edgeType+"_"+rid]!=undefined){
-					var CC = 0;
-					if(metric=="degree"){
-						CC = this.neighborMap[edgeType+"_"+rid].length;
-					}else if(metric=="CC"){
-						CC = this.calCC(node,edgeType);
-					}else if(metric=="Closeness"){
-						
+				var CC = 0;
+				if(metric=="degree"){
+					if(this.neighborMap[edgeType+"_"+rid]==undefined){
+						CC = 0;
 					}else{
-						console.log("not supported");
-						CC=1;
+						CC = this.neighborMap[edgeType+"_"+rid].length;
 					}
-					nodeArray.push({CC:CC,rid:rid});
+				}else if(metric=="CC"){
+					CC = this.calCC(node,edgeType);
+				}else if(metric=="closeness"){
+					CC = CCs[rid];
 				}else{
-					if(this.directed==false){
-						network.nodes.push(node);
-					}
+					console.log("not supported");
+					CC=0;
+				}
+				nodeArray.push({CC:CC,rid:rid});
+			}
+			if(nodeArray.length==0){
+				for(i in nodes){
+					var node = nodes[i];
+					node.cluster = undefined;
+					network.nodes.push(node);
 				}
 			}
 			nodeArray.sort(function(a,b){return b.CC-a.CC;})
 			var clusterNo = 1;
 			//edgemap for normal edges
-			var nm = jQuery.extend(true, {}, this.edgeMap);
+			var nm = {};//jQuery.extend(true, {}, this.edgeMap);
 			for(i in edges){
 				var edge = edges[i];
-				if(nm[edge["@rid"]]==undefined){
-					nm[edge["@rid"]] = edge;
-				}
+				nm[edge["@rid"]] = edge;
 			}
 			var ce = {};
 			for(i in nodeArray){
@@ -1925,27 +1833,33 @@
 							var neighbors = this.neighborMap[edgeType+"_"+nodeArray[i].rid];
 							var cluster = {"@rid":"cluster"+clusterNo,nodes:[node],edges:[],weight:0,expand:{P:false,C:false},clusterEdgeB:[]};
 							//handling the edges for the centroid
-							var output = this.clusterLinks(node,nm,ce,cluster,clusterNo,"out_"+edgeType,"source")
-							nm=output.nm
-							ce=output.ce
-							cluster=output.cluster;
-							var output = this.clusterLinks(node,nm,ce,cluster,clusterNo,"in_"+edgeType,"target");
-							nm=output.nm
-							ce=output.ce
-							cluster=output.cluster;
+							for(j in this.schemas.edge){
+								var edgeClass = this.schemas.edge[j].name;
+								var output = this.clusterLinks(node,nm,ce,cluster,clusterNo,"out_"+edgeClass,"source")
+								nm=output.nm
+								ce=output.ce
+								cluster=output.cluster;
+								var output = this.clusterLinks(node,nm,ce,cluster,clusterNo,"in_"+edgeClass,"target");
+								nm=output.nm
+								ce=output.ce
+								cluster=output.cluster;
+							}
 							//clustering the neighbor tgt
 							for(j in neighbors){
 								if(this.nodeMap[neighbors[j]].cluster==undefined){
 									var ne = this.nodeMap[neighbors[j]]
 									//handling the edges for the neighbor
-									var output = this.clusterLinks(ne,nm,ce,cluster,clusterNo,"out_"+edgeType,"source")
-									nm=output.nm
-									ce=output.ce
-									cluster=output.cluster;
-									var output = this.clusterLinks(ne,nm,ce,cluster,clusterNo,"in_"+edgeType,"target")
-									nm=output.nm
-									ce=output.ce
-									cluster=output.cluster;
+									for(k in this.schemas.edge){
+										var edgeClass = this.schemas.edge[k].name;
+										var output = this.clusterLinks(ne,nm,ce,cluster,clusterNo,"out_"+edgeClass,"source")
+										nm=output.nm
+										ce=output.ce
+										cluster=output.cluster;
+										var output = this.clusterLinks(ne,nm,ce,cluster,clusterNo,"in_"+edgeClass,"target")
+										nm=output.nm
+										ce=output.ce
+										cluster=output.cluster;
+									}
 									//add node into cluster
 									this.nodeMap[neighbors[j]].cluster = clusterNo;
 									cluster.nodes.push(this.nodeMap[neighbors[j]]);
@@ -1956,18 +1870,28 @@
 								network.nodes.push(cluster);
 								clusterNo++;
 							}else{
-								for(i in cluster.nodes){
-									cluster.nodes[i].cluster = undefined;
-									network.nodes.push(cluster.nodes[i]);
+								for(m in cluster.nodes){
+									cluster.nodes[m].cluster = undefined;
+									network.nodes.push(cluster.nodes[m]);
 								}
-								for(i in cluster.clusterEdgeB){
-									delete ce[cluster.clusterEdgeB[i].target["@rid"]+"_"+cluster.clusterEdgeB[i].source["@rid"]]
-									if(cluster.clusterEdgeB[i].source["@rid"]==cluster["@rid"]){
-										cluster.clusterEdgeB[i].source=cluster.clusterEdgeB[i].out;
-									}else if(cluster.clusterEdgeB[i].target["@rid"]==cluster["@rid"]){
-										cluster.clusterEdgeB[i].target=cluster.clusterEdgeB[i].in;
+								for(m in cluster.clusterEdgeB){
+									delete ce[cluster.clusterEdgeB[m].target["@rid"]+"_"+cluster.clusterEdgeB[m].source["@rid"]]
+									if(cluster.clusterEdgeB[m].source["@rid"]==cluster["@rid"]){
+										cluster.clusterEdgeB[m].source=cluster.clusterEdgeB[m].out;
+									}else if(cluster.clusterEdgeB[m].target["@rid"]==cluster["@rid"]){
+										cluster.clusterEdgeB[m].target=cluster.clusterEdgeB[m].in;
 									}
-									nm[cluster.clusterEdgeB[i]["@rid"]] = cluster.clusterEdgeB[i];
+									nm[cluster.clusterEdgeB[m]["@rid"]] = cluster.clusterEdgeB[m];
+								}
+								
+								for(m in cluster.edges){
+									if(cluster.edges[m].source["@rid"]==cluster["@rid"]){
+										cluster.edges[m].source=cluster.edges[m].out;
+									}
+									if(cluster.edges[m].target["@rid"]==cluster["@rid"]){
+										cluster.edges[m].target=cluster.edges[m].in;
+									}
+									network.edges.push(cluster.edges[m]);
 								}
 							}
 							if(this.clusterMap[cluster["@rid"]]==undefined){
@@ -2012,11 +1936,10 @@
 				for(k in edgeArr){
 					if(nm[edgeArr[k]]!=undefined){
 						//delete edge that is within the cluster
-						if(nm[edgeArr[k]]["target"]["@rid"]=="cluster"+clusterName || nm[edgeArr[k]]["source"]["@rid"]=="cluster"+clusterName){
+						nm[edgeArr[k]][st] = cluster;
+						if(nm[edgeArr[k]]["target"]["@rid"]=="cluster"+clusterName && nm[edgeArr[k]]["source"]["@rid"]=="cluster"+clusterName){
 							cluster.edges.push(nm[edgeArr[k]]);
 							delete nm[edgeArr[k]];
-						}else{
-							nm[edgeArr[k]][st] = cluster;
 						}
 						//group all the links that is between clusters
 						if(nm[edgeArr[k]]!=undefined && typeof nm[edgeArr[k]]["target"] !="string" && typeof nm[edgeArr[k]]["source"] !="string"){
@@ -2032,12 +1955,14 @@
 														source:nm[edgeArr[k]]["source"],
 														target:nm[edgeArr[k]]["target"]};
 								}
-								this.clusterMap[nm[edgeArr[k]]["source"]["@rid"]].clusterEdgeB.push(nm[edgeArr[k]]);
-								this.clusterMap[nm[edgeArr[k]]["target"]["@rid"]].clusterEdgeB.push(nm[edgeArr[k]]);
+								nm[edgeArr[k]]["source"].clusterEdgeB.push(nm[edgeArr[k]]);
+								nm[edgeArr[k]]["target"].clusterEdgeB.push(nm[edgeArr[k]]);
 								ce[clusterLink].edges.push(nm[edgeArr[k]]);
 								delete nm[edgeArr[k]];
 							}
 						}
+						//group edges that is towards the same clusters
+						
 					}
 				}
 			}
@@ -2067,6 +1992,11 @@
 		},
 		changeWeightageAttribute: function(attribute,edgeClass){
 			this.options.weight[edgeClass] = attribute;
+			this.resetGraph();
+		},
+		changeFilteringCondition: function(metric,condition){
+			this.options.filterType = metric,
+			this.options.filterCondition = condition;
 			this.resetGraph();
 		},
 		changeOverallEdgeClass: function(edgeClass){
@@ -2137,7 +2067,8 @@
 			url: url,
 			crossDomain: true,
 			data:jsonString,
-			method : "POST"
+			method : "POST",
+			async:false
 		}).success(function(result){
 			$(".loaderDiv").css("display","none");
 			callback(result)

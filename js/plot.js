@@ -25,6 +25,7 @@ function HistogramGraph(modalDivID,data,title,labelX,labelY,avg) {
 		var y = d3.scaleLinear()
 			.range([height, 0]);
 		var z = d3.scaleOrdinal(d3.schemeCategory20);
+		console.log(this.data);
 		var seriesNames = d3.keys(data[0])
 			.filter(function(d) { return d !== "x"; })
 		// Map the data to an array of arrays of {x, y} tuples.

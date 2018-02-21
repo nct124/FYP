@@ -191,6 +191,19 @@
 									</div>
 									<label for="NumOfClusterSelect"class="col-form-label">Number of Clusters:</label>
 									<input type="number" id="NumOfClusterSelect" class="form-control"/>
+									<div class="FilterNodeMetric">
+										<label for="FilterNodeMetric" class="col-form-label">Filter By:</label>
+										<select id="FilterNodeMetric" class="form-control">
+											<option value="off">Off</option>
+											<option value="degree">Degree</option>
+											<option value="CC">Clustering Coefficient</option>
+											<option value="closeness">Closeness</option>
+										</select>
+									</div>
+									<div class="FilterNodeCondition">
+										<input type="range" min="1" max="100" value="0" class="slider" id="FilterNodeCondition">
+										<span id="FilterNodeConditionDisplay">0</span>
+									</div>
 								</div>
 							</div>
 						</div>

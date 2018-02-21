@@ -18,7 +18,7 @@ exports.calCC = function(node,edgeType,neighborMap,directed) {
                 }
             }
         }
-        if (this.directed) {
+        if (this.directed=="true") {
             cc = Nv / ((neighbor.length) * (neighbor.length - 1));
         } else {
             cc = Nv / ((neighbor.length) * (neighbor.length - 1));
@@ -143,7 +143,7 @@ function getEdge(srid,drid,edgeType,nodeMap,edgeMap,directed) {
 	if(nodeMap[srid]["out_"+edgeType]!=undefined){
 		edges = nodeMap[srid]["out_"+edgeType];
 	}
-	if(directed==false){
+	if(directed=="false"){
 		if(nodeMap[srid]["in_"+edgeType]!=undefined){
 			edges = edges.concat(nodeMap[srid]["in_"+edgeType]);
 		}
@@ -153,7 +153,7 @@ function getEdge(srid,drid,edgeType,nodeMap,edgeMap,directed) {
 		if(edge['in']==drid){
 			return edge;
 		}
-		if(!directed){
+		if(directed=="false"){
 			if(edge['out']==drid){
 				return edge;
 			}
