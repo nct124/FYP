@@ -5,7 +5,7 @@ exports.calCC = function(node,edgeType,neighborMap,directed) {
     //find num of neighbors who are neighbors of each other
     if (neighbor != undefined && neighbor.length > 1) {
         for (var i = 0; i < neighbor.length; i++) {
-            for (var j = 0; j < neighbor.length; j++) {
+            for (var j = 1; j < neighbor.length; j++) {
                 //if its not itself
                 if (neighbor[i] != neighbor[j]) {
                     var arrA = neighborMap[edgeType + "_" + neighbor[i]];
@@ -14,7 +14,6 @@ exports.calCC = function(node,edgeType,neighborMap,directed) {
                             Nv++;
                         }
                     }
-
                 }
             }
         }
@@ -23,7 +22,6 @@ exports.calCC = function(node,edgeType,neighborMap,directed) {
         } else {
             cc = Nv / ((neighbor.length) * (neighbor.length - 1));
         }
-        //console.log(cc+"="+Nv+"/"+(neighbor.length)+"*"+(neighbor.length-1));
     }
     return cc;
 }
@@ -73,6 +71,57 @@ exports.recursivePath = function(pres, srcID, prev, current) {
             this.recursivePath(pres, srcID, current, pres[current]);
         }
     }
+}
+exports.floydWarshall=function(nodeMap,edgeMap,weightAttribute,directed,edgeType){
+	var dist = {};
+	var next = {};
+	for(n1 in nodeMap){
+		if(dist[n1]==undefined){
+			dist[n1] = {};
+			next[n1] = {};
+		}
+		dist[n1][n1] = 0
+		for(n2 in nodeMap){
+			if(n1!=n2){
+				dist[n1][n2] = Number.MAX_SAFE_INTEGER;
+			}
+		}
+	}
+	
+	for(e in edgeMap){
+		var edge = edgeMap[e];
+		if(edge["@class"]==edgeType){
+			if (weightAttribute != undefined && weightAttribute != ""){
+				dist[edge.out][edge.in] = parseInt(edge[weightAttribute]);
+			}else{
+				dist[edge.out][edge.in] = 1;
+			}	
+			next[edge.out][edge.in] = [edge.in]
+			if(directed=="false"){
+				if (weightAttribute != undefined && weightAttribute != ""){
+					dist[edge.in][edge.out] = parseInt(edge[weightAttribute]);
+				}else{
+					dist[edge.in][edge.out] = 1;
+				}	
+				next[edge.in][edge.out] = [edge.out]
+			}
+		}
+	}
+	for(n1 in nodeMap){
+		for(n2 in nodeMap){
+			for(n3 in nodeMap){
+				if(dist[n2][n3]>(dist[n2][n1] + dist[n1][n3])){
+					dist[n2][n3] = dist[n2][n1] + dist[n1][n3]
+					next[n2][n3] = next[n2][n1]//[next[n2][n1]]
+				}else if(dist[n2][n1]!=0&&dist[n1][n3]!=0&&
+					dist[n2][n3]==(dist[n2][n1] + dist[n1][n3]
+				)){
+					//next[n2][n3].push(next[n2][n1]);
+				}
+			}
+		}
+	}
+	return {dist: dist,path: next};
 }
 exports.shortestPath = function(startRID,neighborMap,nodeMap,edgeMap,directed,edgeType,weightAttribute) {
     var dist = {};
@@ -134,7 +183,6 @@ exports.shortestPath = function(startRID,neighborMap,nodeMap,edgeMap,directed,ed
 			node: longestDistanceNode
 		}
 	};
-	//console.log(json);
 	return json;
 }
 

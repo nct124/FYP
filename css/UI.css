@@ -98,6 +98,6 @@ svg.graph{
     background: #4CAF50;
     cursor: pointer;
 }
-.FilterNodeCondition{
+.FilterNodeCondition,.NumOfClusterSelect{
 	display:none;
 }

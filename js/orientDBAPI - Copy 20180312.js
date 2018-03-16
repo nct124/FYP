@@ -112,9 +112,6 @@
 		clearGraph: function () {
 			this.nodes = [];
 			this.links = [];
-			this.displayNodes = [];
-			this.displayLinks = [];
-			this.clusters = undefined;
 			this.deleted = {};
 			this.clusterMap = {};
 			this.deleted.nodes = [];
@@ -183,7 +180,7 @@
 			}
 			this.findDuplicateLinks();
         },
-		toggleDirected:function(directed){//directed
+		toggleDirected:function(directed){
 			this.directed = directed;
 			this.clusterMap={};
 			this.updateMapping();
@@ -265,7 +262,7 @@
 				}
 			}
 		},
-		shortestPath: function(startRID,edgeType){//public
+		shortestPath: function(startRID,edgeType){
 			var dist = {};
 			var pres = {};
 			var visited = {};
@@ -727,7 +724,7 @@
 			});
 			return nodes;
 		},
-		getBetweenness: function(edgeType,callback){//public
+		getBetweenness: function(edgeType,callback){
 			var json = {neighborMap:this.neighborMap,
 						nodeMap:this.nodeMap,edgeMap:this.edgeMap,
 						directed:this.directed,edgeType:this.options.edgeUsed,
@@ -739,7 +736,7 @@
 				console.log("Betweenness error");
 			});
 		},
-		getCloseness: function(edgeType,callback){//public
+		getCloseness: function(edgeType,callback){
 			var json = {neighborMap:this.neighborMap,
 						nodeMap:this.nodeMap,edgeMap:this.edgeMap,
 						directed:this.directed,edgeType:this.options.edgeUsed,
@@ -751,7 +748,7 @@
 				console.log("Closeness error");
 			});
 		},
-		getMaxDegree: function(edgeType){//public
+		getMaxDegree: function(edgeType){
 			var maxDegree = 0;
 			for(i in this.neighborMap){
 				if(i.indexOf(edgeType)>-1){
@@ -762,7 +759,7 @@
 			}
 			return maxDegree;
 		},
-		getMinDegree: function(edgeType){//public
+		getMinDegree: function(edgeType){
 			var minDegree = Number.MAX_SAFE_INTEGER;
 			for(i in this.nodeMap){
 				if(this.neighborMap[edgeType+"_"+i]!=undefined){
@@ -776,7 +773,7 @@
 			}
 			return minDegree;
 		},
-		getAvgDegree: function(edgeType){//public
+		getAvgDegree: function(edgeType){
 			var n = this.nodes.length;
 			var sumDegree = 0
 			for(i in this.nodeMap){
@@ -786,13 +783,13 @@
 			}
 			return sumDegree/n;
 		},
-		getGamma: function(edgeType){//public
+		getGamma: function(edgeType){
 			var n = this.nodes.length;
 			var x = this.getMaxDegree(edgeType)/this.getMinDegree(edgeType)
 			var gamma = (Math.log(n)/Math.log(x))+1;
 			return gamma;
 		},
-		getCCDistribution: function(edgeType,callback){//public
+		getCCDistribution: function(edgeType,callback){
 			var json = {nodeMap:this.nodeMap,neighborMap:this.neighborMap,edgeType:edgeType,directed:this.directed};
 			var functionURL = "http://localhost:8080/getCCDistribution";
 			ajaxServer(functionURL,json,function(result){
@@ -801,7 +798,7 @@
 				console.log("CC error");
 			});
 		},
-		getDiameter: function(edgeType,callback){//public
+		getDiameter: function(edgeType,callback){
 			var json = {neighborMap:this.neighborMap,
 						nodeMap:this.nodeMap,edgeMap:this.edgeMap,
 						directed:this.directed,edgeType:this.options.edgeUsed,
@@ -814,7 +811,7 @@
 				displayErrorMsg("Error might be due to a directed network is shown to be a undirected network")
 			});
 		},
-		getPageRank: function(edgeType,callback){//public
+		getPageRank: function(edgeType,callback){
 			var json = {neighborMap:this.neighborMap,
 						nodeMap:this.nodeMap,edgeMap:this.edgeMap,
 						directed:this.directed,edgeType:this.options.edgeUsed};
@@ -825,7 +822,7 @@
 				console.log("getPageRank error");
 			});
 		},
-		getDegreeDistribution: function(edgeType,directed,callback){//public
+		getDegreeDistribution: function(edgeType,directed,callback){
 			var json = {nodeMap:this.nodeMap,"directed":directed,"edgeType":edgeType};
 			var functionURL = "http://localhost:8080/getDegreeDistribution";
 			ajaxServer(functionURL,json,function(result){
@@ -834,7 +831,7 @@
 				console.log("Degree error");
 			});
 		},
-		calCC: function(node,edgeType){//public
+		calCC: function(node,edgeType){
 			var cc = 0;
 			var neighbor = this.neighborMap[edgeType+"_"+node['@rid']];
 			var Nv = 0;
@@ -897,8 +894,8 @@
 				this.displayNodes = nodes;
 				this.displayLinks = links;
 			}
-			//clustering
 			if(this.options.clusteringMethod=="kmeansClustering"){
+				//clustering
 				if(this.clusters==undefined){
 					this.clusters = this.kmeansClustering(this.displayNodes,this.displayLinks,"follows");
 				}
@@ -912,6 +909,7 @@
 					console.log(this.clusters);
 				}
 				var net = this.createClusters(this.displayNodes,this.displayLinks,this.clusters);
+				console.log(net);
 				this.displayNodes = net.nodes;
 				this.displayLinks = net.links;
 				this.checkExpand();
@@ -920,6 +918,40 @@
 					this.displayNodes[i].cluster = undefined;
 				}
 			}
+			
+			/*if(this.options.filterType!="off"){
+				var net = this.filterNetworkBasedOnAttribute(nodes,links,this.options.edgeUsed);
+				this.displayNodes = net.nodes;
+				this.displayLinks = net.edges;
+				console.log("filtered");
+				console.log(net);
+			}else{
+				console.log("not filtered");
+				this.displayNodes = nodes;
+				this.displayLinks = links;
+			}
+			
+			if(this.options.clusteringMethod=="attribute"){
+				var net = this.clusterNetworkBasedOnAttribute(this.displayNodes,this.displayLinks,this.options.edgeUsed);
+				this.displayNodes = net.nodes;
+				this.displayLinks = net.edges;
+				console.log("clusteredAttr");
+				console.log(net);
+				this.checkExpand();
+			}else if(this.options.clusteringMethod!="off"){
+				console.log(this.displayNodes);
+				console.log(this.displayLinks);
+				var net = this.clusterNetwork(this.displayNodes,this.displayLinks,this.options.edgeUsed);
+				this.displayNodes = net.nodes;
+				this.displayLinks = net.edges;
+				console.log("clustered");
+				console.log(net);
+				this.checkExpand();
+			}else{
+				for(i in this.displayNodes){
+					this.displayNodes[i].cluster = undefined;
+				}
+			}*/
 			
 			this.init();
 			//console.log("init");
@@ -930,15 +962,14 @@
 			this.simulation.alpha(0.3).restart();
 			//console.log("restart");
 			var property = this.loadBasicNetworkProperties();
-			displayBasicNetworkProperties(property);
-			/*//console.log("property");
+			//console.log("property");
 			$("#NetD .properties").html("<div class='table-responsive'>"+
 											"<table class='table'><tbody></tbody></table>"+
 										"</div>");
 			var table = $("#NetD .properties table tbody")
 			for(i in property){
 				table.append("<tr><td>"+i+"</td><td>"+property[i]+"</td></tr>");
-			}*/
+			}
 			//console.log("Displayproperty");
 		},
 		loadClass: function (vertex){
@@ -957,7 +988,7 @@
 				}
 			}
 		},
-		deleteNodeinNetwork: function(rid,classType){//public
+		deleteNodeinNetwork: function(rid,classType){
 			if(rid.charAt(0)=='#'){
 				var json = {};
 				json['@rid'] = rid;
@@ -1032,13 +1063,7 @@
 			return clusters;
 		},
 		kmeansClustering:function(nodes,links,edgeType){
-			//1 randomly select k data points to act as centroids
-			//2 calculate cosine similarity between each data point and each centroid. This is just the normalized dot product.
-			//3 assign each data point to the cluster with which it has the *highest* cosine similarity.
-			//4 calculate the average of each cluster to get new centroids
-			var CS = this.similarityCalculation(nodes,links,"E","both");
-			console.log("CS")
-			console.log(CS)
+			var CS = this.similarityCalculation(nodes,links,edgeType,"both");
 			//to make each node have only 1 value
 			var avgCS = {};
 			var n = nodes.length;
@@ -1050,84 +1075,81 @@
 				avgCS[i] = avg/n;
 			}
 			var k = 2;
-			
+			//selecting k points
 			var centroids = [];
-			if(k<=nodes.length){
-				var usedNodes = [];
-				//step 1
-				for(var i=1;i<=k;i++){
-					//randomly
-					var node = selectRandom(nodes,usedNodes)["@rid"];
-					centroids.push({CS:avgCS[node],nodes:[]});
-					usedNodes.push(node);
-				}
-				var centroidResult = {};
-				var updated = true;
-				var first = true;
-				//converge
-				while(updated==true){
-					updated = false;
-					for(nodeID in avgCS){
-						var closest;
-						var closestD = 1;
-						//find smallest difference
-						for(c in centroids){
-							if(centroids[c].nodes.indexOf(nodeID)==-1){
-								var diff = Math.abs(centroids[c].CS - avgCS[nodeID]);
-								if(closestD>diff){
-									closest = c; closestD = diff;
-								}
+			var usedNodes = [];
+			for(var i=1;i<=k;i++){
+				//randomly
+				var node = selectRandom(nodes,usedNodes)["@rid"];
+				centroids.push({CS:avgCS[node],nodes:[]});
+				usedNodes.push(node);
+			}
+			var centroidResult = {};
+			var updated = true;
+			var first = true;
+			//converge
+			while(updated==true){
+				updated = false;
+				for(nodeID in avgCS){
+					var closest;
+					var closestD = 1;
+					//find smallest difference
+					for(c in centroids){
+						if(centroids[c].nodes.indexOf(nodeID)==-1){
+							var diff = Math.abs(centroids[c].CS - avgCS[nodeID]);
+							if(closestD>diff){
+								closest = c; closestD = diff;
 							}
 						}
-						centroids[closest].nodes.push(nodeID);
 					}
-					//check if any centroids are empty
-					for(c in centroids){
-						if(centroids[c].nodes.length==0){
-							//find largest SSE Node
-							var SSE = findLargestSSE(avgCS,centroids);
-							console.log(SSE);
-							centroids[c].nodes.push(SSE.node);
-							var index = centroids[SSE.centroidIndex].nodes.indexOf(SSE.node);
-							centroids[SSE.centroidIndex].nodes.splice(index,1);
+					centroids[closest].nodes.push(nodeID);
+				}
+				//check if any centroids are empty
+				for(c in centroids){
+					if(centroids[c].nodes.length==0){
+						//find largest SSE Node
+						var SSE = findLargestSSE(avgCS,centroids);
+						centroids[c].nodes.push(SSE.node);
+						var index = centroids[SSE.centroidIndex].nodes.indexOf(SSE.node);
+						centroids[SSE.centroidIndex].nodes.splice(index,1);
+					}
+				}
+				//check if its changed
+				if(first==true){
+					first=false; updated = true;
+				}else{
+					for(i in centroids){
+						if(centroids[i].nodes.length!=centroids[i].pnodes.length){
+							updated = true; break;
 						}
-					}
-					//check if its changed
-					if(first==true){
-						first=false; updated = true;
-					}else{
-						for(i in centroids){
-							if(centroids[i].nodes.length!=centroids[i].pnodes.length){
+						var nodes1; var nodes2;
+						if(centroids[i].nodes.length>=centroids[i].pnodes.length){nodes1=centroids[i].nodes; nodes2=centroids[i].pnodes;
+						}else{nodes2=centroids[i].nodes; nodes1=centroids[i].pnodes;}
+						for(j in nodes1){
+							if(nodes2.indexOf(nodes1[j])==-1){
 								updated = true; break;
 							}
-							var nodes1; var nodes2;
-							if(centroids[i].nodes.length>=centroids[i].pnodes.length){nodes1=centroids[i].nodes; nodes2=centroids[i].pnodes;
-							}else{nodes2=centroids[i].nodes; nodes1=centroids[i].pnodes;}
-							for(j in nodes1){
-								if(nodes2.indexOf(nodes1[j])==-1){
-									updated = true; break;
-								}
-							}
 						}
 					}
-					//check if updated then update centroid CS
-					if(updated==true){
-						//update centroid CS
-						for(i in centroids){
-							var sum = 0;
-							for(j in centroids[i].nodes){
-								sum+=avgCS[centroids[i].nodes[j]];
-							}
-							centroids[i].CS = sum/centroids[i].nodes.length;
-							centroids[i].pnodes = centroids[i].nodes;
-							centroids[i].nodes = [];
+				}
+				//check if updated then update centroid CS
+				if(updated==true){
+					//update centroid CS
+					for(i in centroids){
+						var sum = 0;
+						for(j in centroids[i].nodes){
+							sum+=avgCS[centroids[i].nodes[j]];
 						}
+						centroids[i].CS = sum/centroids[i].nodes.length;
+						centroids[i].pnodes = centroids[i].nodes;
+						centroids[i].nodes = [];
 					}
 				}
 			}
+			console.log(centroids);
 			return centroids;
 		},
-		similarityCalculation:function(nodes,edges,edgeType,direction){//public
+		similarityCalculation:function(nodes,edges,edgeType,direction){
 			//return a hashmap containing the cosineSimilarity of each node
 			//cosinesimilarity(d1,d2) = (d1 . d2) /(|d1| * |d2|)
 			//using the links to calculate the CS
@@ -1154,14 +1176,36 @@
 					}
 				}
 			}
+			/*for(nodeID1 in this.nodeMap){
+				CS[nodeID1] = {};
+				for(nodeID2 in this.nodeMap){
+					var dotproduct = 0;
+					var neighbor1 = this.neighborMap[edgeType+"_"+nodeID1];
+					var neighbor2 = this.neighborMap[edgeType+"_"+nodeID2];
+					if(nodeID1!=nodeID2&&neighbor1!=undefined && neighbor2!=undefined){//if both nodes have neighbors
+						for(ne1 in neighbor1){
+							if(neighbor2.indexOf(neighbor1[ne1])>-1){
+								dotproduct++;
+							}
+						}
+						var dd1 =  Math.sqrt(neighbor1.length);
+						var dd2 =  Math.sqrt(neighbor2.length);
+						CS[nodeID1][nodeID2] = dotproduct/(dd1*dd2);
+					}
+				}
+			}*/
 			return CS;
 		},
-		deleteEdgeinNetwork: function(rid,classType){//public
+		deleteEdgeinNetwork: function(rid,classType){
 			if(rid.charAt(0)=='#'){
 				var json = {};
 				json['@rid'] = rid;
 				json['@class'] = classType;
-				this.deleted.links.push(json);
+				if(vertex){
+					this.deleted.nodes.push(json);
+				}else{
+					this.deleted.links.push(json);
+				}
 			}
 			//update map
 			//delete neighbor in nodeMap
@@ -1191,7 +1235,99 @@
 			var removeGraph = {nodes:[],links:[{"@rid":rid}]};
 			this.updateGraph(newGraph,removeGraph)
 		},
-		loadBasicNetworkProperties:function(){//public
+		deleteNEinNetwork: function(rid,classType,vertex){
+			if(rid.charAt(0)=='#'){
+				var json = {};
+				json['@rid'] = rid;
+				json['@class'] = classType;
+				if(vertex){
+					this.deleted.nodes.push(json);
+				}else{
+					this.deleted.links.push(json);
+				}
+			}
+			if(vertex){
+				var newGraph = {nodes:[],links:[]};
+				var connectedLinks = [];
+				for(var i=0;i<this.links.length;i++){
+					var connectedLink = this.links[i]
+					if(connectedLink.out==rid || connectedLink.in==rid){
+						connectedLinks.push({"@rid":connectedLink['@rid']});
+					}
+				}
+				//update maps
+				var schema = this.schemas;
+				for(var i=0;i<schema.edge.length;i++){
+					for(edge in this.nodeMap[rid]["in_"+schema.edge[i].name]){
+						//delete node's neighbor of the deleted edge
+						var out_id = this.edgeMap[this.nodeMap[rid]["in_"+schema.edge[i].name][edge]]['out'];
+						var index = this.nodeMap[out_id]["out_"+schema.edge[i].name].indexOf(this.nodeMap[rid]["in_"+schema.edge[i].name][edge]);
+						this.nodeMap[out_id]["out_"+schema.edge[i].name].splice(index,1);
+						//delete neighbor in neighborMap
+						delete this.neighborMap[schema.edge[i].name+"_"+rid];
+						if(this.neighborMap[schema.edge[i].name+"_"+out_id]!=undefined){
+							index = this.neighborMap[schema.edge[i].name+"_"+out_id].indexOf(rid);
+							if(index>-1){
+								this.neighborMap[schema.edge[i].name+"_"+out_id].splice(index,1)
+							}
+						}
+						//delete edge in edge map
+						delete this.edgeMap[this.nodeMap[rid]["in_"+schema.edge[i].name][edge]]
+					}
+					for(edge in this.nodeMap[rid]["out_"+schema.edge[i].name]){
+						//delete node's neighbor of the deleted edge
+						var in_id = this.edgeMap[this.nodeMap[rid]["out_"+schema.edge[i].name][edge]]['in'];
+						var index = this.nodeMap[in_id]["in_"+schema.edge[i].name].indexOf(this.nodeMap[rid]["out_"+schema.edge[i].name][edge]);
+						this.nodeMap[in_id]["in_"+schema.edge[i].name].splice(index,1);
+						//delete neighbor in neighborMap
+						delete this.neighborMap[schema.edge[i].name+"_"+rid];
+						if(this.neighborMap[schema.edge[i].name+"_"+in_id]!=undefined){
+							index = this.neighborMap[schema.edge[i].name+"_"+in_id].indexOf(rid);
+							if(index>-1){
+								this.neighborMap[schema.edge[i].name+"_"+in_id].splice(index,1)
+							}
+						}
+						//delete edge in edge map
+						delete this.edgeMap[this.nodeMap[rid]["out_"+schema.edge[i].name][edge]]
+					}
+				}
+				//delete node itself
+				delete this.nodeMap[rid]
+				
+				var removeGraph = {nodes:[{"@rid":rid}],links:connectedLinks};
+				this.updateGraph(newGraph,removeGraph)
+								
+			}else{
+				//update map
+				//delete neighbor in nodeMap
+				var index = this.nodeMap[this.edgeMap[rid].in]["in_"+this.edgeMap[rid]['@class']].indexOf(rid);
+				if(index>-1){
+					this.nodeMap[this.edgeMap[rid].in]["in_"+this.edgeMap[rid]['@class']].splice(index,1);
+				}
+				index = this.nodeMap[this.edgeMap[rid].out]["out_"+this.edgeMap[rid]['@class']].indexOf(rid);
+				if(index>-1){
+					this.nodeMap[this.edgeMap[rid].out]["out_"+this.edgeMap[rid]['@class']].splice(index,1);
+				}
+				//delete neighbor in neighborMap
+				index = this.neighborMap[this.edgeMap[rid]['@class']+"_"+this.edgeMap[rid].out].indexOf(this.edgeMap[rid].in)
+				if(index>-1){
+					this.neighborMap[this.edgeMap[rid]['@class']+"_"+this.edgeMap[rid].out].splice(index,1);
+				}
+				if(this.directed==false){
+					index = this.neighborMap[this.edgeMap[rid]['@class']+"_"+this.edgeMap[rid].in].indexOf(this.edgeMap[rid].out)
+					if(index>-1){
+						this.neighborMap[this.edgeMap[rid]['@class']+"_"+this.edgeMap[rid].in].splice(index,1);
+					}
+				}
+				//delete edge itself
+				delete this.edgeMap[rid]
+				
+				var newGraph = {nodes:[],links:[]}
+				var removeGraph = {nodes:[],links:[{"@rid":rid}]};
+				this.updateGraph(newGraph,removeGraph)
+			}
+		},
+		loadBasicNetworkProperties:function(){
 			var edgeType = active.options.edgeUsed;
 			//num of node/edge
 			var noOfNodes = 0;
@@ -1224,7 +1360,7 @@
 			var ret = {components:components,density:density,nodes:noOfNodes,edges:noOfEdges}
 			return ret;
 		},
-		createNodeinNetwork: function(rid,classType,properties,callback){//public
+		createNodeinNetwork: function(rid,classType,properties,callback){
 			var parent = this;
 			var json = {};
 			for (var key in properties) {
@@ -1250,7 +1386,6 @@
 					}
 				}
 			}
-			
 			var newGraph = {nodes:[json],links:[]}
 			var removeGraph = {nodes:[{"@rid":rid}],links:[]};
 			//update map before reseting graph
@@ -1259,7 +1394,7 @@
 			this.updateGraph(newGraph,removeGraph)
 			callback(json,classType);
 		},
-		createEdgeinNetwork: function(rid,classType,ridfrom,ridto,properties,callback){//public
+		createEdgeinNetwork: function(rid,classType,ridfrom,ridto,properties,callback){
 			var parent = this;
 			var json = {};
 			for (var key in properties) {
@@ -1310,7 +1445,7 @@
 				throw "Please create the nodes first.";
 			}
 		},
-		saveNetwork: function(){//public
+		saveNetwork: function(){
 			var parent = this;
 			var vertex;
 			var functionURL = "http://localhost:2480/function/"+this.db+"/saveNetwork";
@@ -1461,7 +1596,7 @@
 				parent.deleted.links = [];
 			});
 		},
-		queryDatabase: function(query,callback){//public
+		queryDatabase: function(query,callback){
 			var functionURL = "http://localhost:2480/function/"+this.db+"/ask";
 			var json = {query:query};
 			var str = JSON.stringify(json);
@@ -1475,6 +1610,26 @@
 					parent.data = data1;
 					parent.loadData();
 					parent.resetGraph();
+					/*var nodes = jQuery.extend(true, [], parent.nodes);
+					var links = jQuery.extend(true, [], parent.links);
+					var net = parent.filterNetworkBasedOnAttribute(nodes,links,parent.options.edgeUsed);
+					parent.displayNodes = net.nodes;
+					parent.displayLinks = net.edges;
+					if(parent.options.clusteringMethod=="attribute"){
+						var net = parent.clusterNetworkBasedOnAttribute(parent.displayNodes,parent.displayLinks,parent.options.edgeUsed);
+						parent.displayNodes = net.nodes;
+						parent.displayLinks = net.edges;
+						parent.checkExpand();
+					}else if(parent.prevZoom<2&&parent.options.clusteringMethod!="off"){
+						var net = parent.clusterNetwork(parent.displayNodes,parent.displayLinks,parent.options.edgeUsed);
+						parent.displayNodes = net.nodes;
+						parent.displayLinks = net.edges;
+					}else{
+						//parent.displayNodes = parent.nodes;
+						//parent.displayLinks = parent.links;
+					}*/
+					//parent.findDuplicateLinks();
+					//parent.displayGraph();
 					callback();
 				},function(){
 					console.log("error in query");
@@ -1486,8 +1641,8 @@
 			})
 			
 		},
-		exportNetwork: function(a){//public
-			if((this.displayNodes&&this.displayLinks)&&(this.displayNodes.length>0)){
+		exportNetwork: function(a){
+			if(this.nodes&&this.links){
 				var textExport = "";
 				var nodesExport = "";
 				var linksExport = "";
@@ -1496,8 +1651,8 @@
 				var schemaUsedV = {};
 				var schemaExportE = "";
 				var schemaUsedE = {};
-				for(i in this.displayLinks){
-					var link = this.displayLinks[i];
+				for(i in this.links){
+					var link = this.links[i];
 					linksExport+="\n"+(link.out+"to"+link.in).replace(new RegExp("#", 'g'),"");
 					if(schemaUsedE[link["@class"]]==undefined){
 						for(j in this.schemas.edge){
@@ -1515,8 +1670,8 @@
 						linksPropertyExport+=" "+link[property];
 					}
 				}
-				for(i in this.displayNodes){
-					var node = this.displayNodes[i];
+				for(i in this.nodes){
+					var node = this.nodes[i];
 					if(schemaUsedV[node["@class"]]==undefined){
 						for(j in this.schemas.vertex){
 							var schema = this.schemas.vertex[j];
@@ -1567,8 +1722,35 @@
 				a.href = URL.createObjectURL(file);
 				a.download = name;
 			}else{
-				displayErrorMsg("No network has been found");
+				alert("no data is displayed");
 			}
+			/*if(this.nodes&&this.links){
+				var nodes = jQuery.extend(true, [], this.nodes);
+				var links = jQuery.extend(true, [], this.links);
+				var json = {};
+				var i=0;
+				i=0;
+				while(i<links.length){
+					links[i]['source'] = links[i]['source']['@rid'];
+					links[i]['target'] = links[i]['target']['@rid'];
+					i++;
+				}
+				json.schemas=parent.schemas;
+				json.nodes=nodes;
+				json.links=links;
+				var text=JSON.stringify(json);
+				text = text.replace(new RegExp("@rid\":\"#", 'g'),"@rid\":\"");
+				text = text.replace(new RegExp("out\":\"#", 'g'),"out\":\"");
+				text = text.replace(new RegExp("in\":\"#", 'g'),"in\":\"");
+				text = text.replace(new RegExp("source\":\"#", 'g'),"source\":\"");
+				text = text.replace(new RegExp("target\":\"#", 'g'),"target\":\"");
+				var type="text/plain"
+				var file = new Blob([text], {type: type});
+				a.href = URL.createObjectURL(file);
+				a.download = name;
+			}else{
+				alert("no data is displayed");
+			}*/
 		},
 		checkExpand:function(){
 			for(var i=0;i<this.displayLinks.length;i++){
@@ -1582,15 +1764,12 @@
 						var ce = edge.edges[j];
 						if(this.clusterMap[eout].expand.C==true){
 							ce.source = ce.out;
-							splice = true;
 						}
 						if(this.clusterMap[ein].expand.C==true){
 							ce.target = ce.in;
-							splice = true;
 						}
-						if(splice==true){
-							this.displayLinks.push(ce);
-						}
+						this.displayLinks.push(ce);
+						splice = true;
 					}
 				}else if(eout.indexOf("cluster")>-1){
 					//cluster to node,
@@ -1637,6 +1816,72 @@
 					}
 				}
 			}
+			/*
+			for(var i=0;i<this.displayLinks.length;i++){
+				var clusteredge = this.displayLinks[i];
+				//when cluster link to cluster
+				if(clusteredge["@rid"].indexOf("cluster")>-1){
+					var eid = clusteredge["@rid"].split("_");
+					var eout = eid[0];
+					var ein = eid[1];
+					var splice = false;
+					for(j in clusteredge.edges){
+						var edge = clusteredge.edges[j];
+						if(this.clusterMap[eout].expand.C==true){
+							edge.source = edge.out;
+							this.displayLinks.push(edge);
+							splice=true;
+						}else if(this.clusterMap[ein].expand.C==true){
+							edge.target = edge.in;
+							this.displayLinks.push(edge);
+							splice = true;
+						}
+					}
+					if(splice==true){
+						this.displayLinks.splice(i,1);
+						i--;
+					}
+				}
+				//when cluster link to node
+				//if(typeof clusteredge["source"] !="string" ){
+					if(this.clusterMap[clusteredge["source"]]!=undefined){
+						if(this.clusterMap[clusteredge["source"]].expand.C==true){
+							if(clusteredge.out.indexOf("cluster")==-1){
+								clusteredge.source = clusteredge.out;
+							}
+							
+						}
+					}
+				//}
+				//if(typeof clusteredge["target"] !="string" ){
+					if(this.clusterMap[clusteredge["target"]]!=undefined){
+						if(this.clusterMap[clusteredge["target"]].expand.C==true){
+							if(clusteredge.in.indexOf("cluster")==-1){
+								clusteredge.target = clusteredge.in;
+							}
+						}
+					}
+				//}
+			}
+			for(var i=0;i<this.displayNodes.length;i++){
+				var node = this.displayNodes[i];
+				if(this.clusterMap[node["@rid"]]!=undefined){
+					var clusterNode = this.clusterMap[node["@rid"]];
+					if(clusterNode.expand.C==true){
+						//expand
+						for(j in clusterNode.nodes){//add back the nodes within the cluster
+							this.displayNodes.push(clusterNode.nodes[j]);
+						}
+						for(j in clusterNode.edges){//add back the edges within the cluster
+							clusterNode.edges[j]["source"] = clusterNode.edges[j]["out"]
+							clusterNode.edges[j]["target"] = clusterNode.edges[j]["in"]
+							this.displayLinks.push(clusterNode.edges[j]);
+						}
+						this.displayNodes.splice(i,1);
+						i--;
+					}
+				}
+			}*/
 		},
 		filterNetworkBasedOnAttribute:function(nodes,edges,edgeType){
 			var network = {};
@@ -1669,12 +1914,13 @@
 					if(filterType=="degree"){
 						if(node["out_"+edgeType]!=undefined){
 							attribute = node["out_"+edgeType].length;
-						}
-						if(this.directed==false){
-							if(node["in_"+edgeType]!=undefined){
-								attribute += node["in_"+edgeType].length;
+							if(this.directed==false){
+								if(node["in_"+edgeType]!=undefined){
+									attribute += node["in_"+edgeType].length;
+								}
 							}
 						}
+						
 					}else if(filterType=="CC"){
 						attribute = this.calCC(node,edgeType);
 					}else if(filterType=="closeness"){
@@ -1739,7 +1985,6 @@
 					finalNodes.push(nodeMap[clusters[i].nodes[0]]);
 				}
 			}
-			
 			for(i in edgeMap){
 				var edge = edgeMap[i];
 				var innode=nodeMap[edge.in]; var outnode = nodeMap[edge.out];
@@ -1807,14 +2052,240 @@
 			for(i in clusterLinks){
 				finalLinks.push(clusterLinks[i]);
 			}
-			if(finalNodes.length==0){
-				for(i in nodes){
-					finalNodes.push(nodes[i]);
-				}
-			}
 			return {nodes:finalNodes,links:finalLinks};
 		},
-		uploadNetwork: function(json,schemas,callback){//public
+		clusterNetworkBasedOnAttribute:function(nodes,edges,edgeType){
+			var clusterExpand = {};
+			for(i in this.clusterMap){
+				clusterExpand[this.clusterMap[i]["@rid"]] = this.clusterMap[i].expand;
+			}
+			this.clusterMap = {};
+			var network = {};
+			network.nodes = [];
+			network.edges = [];
+			//edgemap for normal edges
+			var nm = {};//jQuery.extend(true, {}, this.edgeMap);
+			for(i in edges){
+				var edge = edges[i];
+				nm[edge["@rid"]] = edge;
+			}
+			var ce = {};
+			for(i in nodes){
+				var node = nodes[i];
+				var groupAttr = this.options.clusteringClassAttribute[node["@class"]];
+				if(groupAttr==undefined || groupAttr!=""){
+					var groupAttrValue = node[groupAttr];
+					var cluster;
+					if(this.clusterMap["cluster"+groupAttrValue]==undefined){
+						if(clusterExpand["cluster"+groupAttrValue]!=undefined){
+							cluster = {"@rid":"cluster"+groupAttrValue,nodes:[],edges:[],weight:0,expand:clusterExpand["cluster"+groupAttrValue],clusterEdgeB:[]};
+						}else{
+							cluster = {"@rid":"cluster"+groupAttrValue,nodes:[],edges:[],weight:0,expand:{P:false,C:false},clusterEdgeB:[]};
+						}
+						this.clusterMap["cluster"+groupAttrValue]=cluster;
+					}else{
+						cluster = this.clusterMap["cluster"+groupAttrValue];
+					}
+					//get all edges from node
+					for(j in this.schemas.edge){
+						var edgeClass = this.schemas.edge[j].name;
+						var output = this.clusterLinks(node,nm,ce,cluster,groupAttrValue,"out_"+edgeClass,"source")
+						nm=output.nm
+						ce=output.ce
+						cluster=output.cluster;
+						var output = this.clusterLinks(node,nm,ce,cluster,groupAttrValue,"in_"+edgeClass,"target")
+						nm=output.nm
+						ce=output.ce
+						cluster=output.cluster;
+					}
+					node["cluster"] = groupAttrValue;
+					this.clusterMap["cluster"+groupAttrValue].nodes.push(node);
+				}else{
+					network.nodes.push(node);
+				}
+			}
+			for(i in this.clusterMap){
+				var cluster = this.clusterMap[i];
+				if(cluster.nodes.length>1){
+					network.nodes.push(cluster);
+				}else{
+					for(j in cluster.nodes){
+						cluster.nodes[j].cluster = undefined;
+						network.nodes.push(cluster.nodes[j]);
+					}
+					for(j in cluster.clusterEdgeB){						
+						delete ce[cluster.clusterEdgeB[j].target["@rid"]+"_"+cluster.clusterEdgeB[j].source["@rid"]]
+						if(cluster.clusterEdgeB[j].source["@rid"]==cluster["@rid"]){
+							cluster.clusterEdgeB[j].source=cluster.clusterEdgeB[j].out;
+						}else if(cluster.clusterEdgeB[j].target["@rid"]==cluster["@rid"]){
+							cluster.clusterEdgeB[j].target=cluster.clusterEdgeB[j].in;
+						}
+						nm[cluster.clusterEdgeB[j]["@rid"]] = cluster.clusterEdgeB[j];
+					}
+					delete this.clusterMap[i];
+				}
+			}
+			for (i in nm){
+				network.edges.push(nm[i]);
+			}
+			for(i in ce){
+				network.edges.push(ce[i]);
+			}
+			return network;
+		},
+		clusterNetwork:function(nodes,edges,edgeType){
+			var metric = this.options.clusteringMethod;//"degree","CC","Closeness"
+			var MaxNoOfNodes = nodes.length/3;
+			var noOfNodes = nodes.length
+			var noOfCluster = this.options.noOfCluster;
+			var nodeArray = [];
+			var network = {};
+			network.nodes = [];
+			network.edges = [];
+			
+			var CCs;
+			if(metric=="closeness"){
+				this.getCloseness(edgeType,function(closeness){
+					CCs = closeness;
+				});
+			}
+			
+			for(i in nodes){
+				var node = nodes[i];
+				node.cluster = undefined;
+				var rid = node["@rid"];
+				var CC = 0;
+				if(metric=="degree"){
+					if(this.neighborMap[edgeType+"_"+rid]==undefined){
+						CC = 0;
+					}else{
+						CC = this.neighborMap[edgeType+"_"+rid].length;
+					}
+				}else if(metric=="CC"){
+					CC = this.calCC(node,edgeType);
+				}else if(metric=="closeness"){
+					CC = CCs[rid];
+				}else{
+					console.log("not supported");
+					CC=0;
+				}
+				nodeArray.push({CC:CC,rid:rid});
+			}
+			if(nodeArray.length==0){
+				for(i in nodes){
+					var node = nodes[i];
+					node.cluster = undefined;
+					network.nodes.push(node);
+				}
+			}
+			nodeArray.sort(function(a,b){return b.CC-a.CC;})
+			var clusterNo = 1;
+			//edgemap for normal edges
+			var nm = {};//jQuery.extend(true, {}, this.edgeMap);
+			for(i in edges){
+				var edge = edges[i];
+				edge["source"] = edge.out;
+				edge["target"] = edge.in
+				nm[edge["@rid"]] = edge;
+			}
+			console.log(nm);
+			var ce = {};
+			for(i in nodeArray){
+				var node = this.nodeMap[nodeArray[i].rid];
+				if(node!=undefined){
+					if(noOfNodes>=MaxNoOfNodes && noOfCluster>clusterNo){
+						if(node.cluster==undefined){
+							//centroid
+							node.cluster = clusterNo;
+							var neighbors = this.neighborMap[edgeType+"_"+nodeArray[i].rid];
+							var cluster = {"@rid":"cluster"+clusterNo,nodes:[node],edges:[],weight:0,expand:{P:false,C:false},clusterEdgeB:[]};
+							if(this.clusterMap[cluster["@rid"]]==undefined){
+								this.clusterMap[cluster["@rid"]] = cluster;
+							}else{
+								cluster.expand = this.clusterMap[cluster["@rid"]].expand;
+								this.clusterMap[cluster["@rid"]] = cluster;
+							}
+							//handling the edges for the centroid
+							for(j in this.schemas.edge){
+								var edgeClass = this.schemas.edge[j].name;
+								var output = this.clusterLinks(node,nm,ce,cluster,clusterNo,"out_"+edgeClass,"source")
+								nm=output.nm
+								ce=output.ce
+								cluster=output.cluster;
+								var output = this.clusterLinks(node,nm,ce,cluster,clusterNo,"in_"+edgeClass,"target");
+								nm=output.nm
+								ce=output.ce
+								cluster=output.cluster;
+							}
+							//clustering the neighbor tgt
+							for(j in neighbors){
+								if(this.nodeMap[neighbors[j]].cluster==undefined){
+									var ne = this.nodeMap[neighbors[j]]
+									//handling the edges for the neighbor
+									for(k in this.schemas.edge){
+										var edgeClass = this.schemas.edge[k].name;
+										var output = this.clusterLinks(ne,nm,ce,cluster,clusterNo,"out_"+edgeClass,"source")
+										nm=output.nm
+										ce=output.ce
+										cluster=output.cluster;
+										var output = this.clusterLinks(ne,nm,ce,cluster,clusterNo,"in_"+edgeClass,"target")
+										nm=output.nm
+										ce=output.ce
+										cluster=output.cluster;
+									}
+									//add node into cluster
+									this.nodeMap[neighbors[j]].cluster = clusterNo;
+									cluster.nodes.push(this.nodeMap[neighbors[j]]);
+									noOfNodes--;
+								}
+							}
+							if(cluster.nodes.length>1){
+								network.nodes.push(cluster);
+								clusterNo++;
+							}else{
+								for(m in cluster.nodes){
+									cluster.nodes[m].cluster = undefined;
+									network.nodes.push(cluster.nodes[m]);
+								}
+								for(m in cluster.clusterEdgeB){
+									delete ce[cluster.clusterEdgeB[m].target["@rid"]+"_"+cluster.clusterEdgeB[m].source["@rid"]]
+									if(cluster.clusterEdgeB[m].source["@rid"]==cluster["@rid"]){
+										cluster.clusterEdgeB[m].source=cluster.clusterEdgeB[m].out;
+									}else if(cluster.clusterEdgeB[m].target["@rid"]==cluster["@rid"]){
+										cluster.clusterEdgeB[m].target=cluster.clusterEdgeB[m].in;
+									}
+									nm[cluster.clusterEdgeB[m]["@rid"]] = cluster.clusterEdgeB[m];
+								}
+								for(m in cluster.edges){
+									if(cluster.edges[m].source["@rid"]==cluster["@rid"]){
+										cluster.edges[m].source=cluster.edges[m].out;
+									}
+									if(cluster.edges[m].target["@rid"]==cluster["@rid"]){
+										cluster.edges[m].target=cluster.edges[m].in;
+									}
+									network.edges.push(cluster.edges[m]);
+								}
+								delete this.clusterMap[cluster["@rid"]];
+							}
+						}
+					}else{
+						if(node.cluster==undefined){
+							network.nodes.push(node);
+						}
+					}
+				}else{
+					network.nodes.push(node);
+				}
+			}
+			for (i in nm){
+				network.edges.push(nm[i]);
+			}
+			for(i in ce){
+				network.edges.push(ce[i]);
+			}
+			return network;
+		},
+		uploadNetwork: function(json,schemas,callback){
 			this.clearGraph();
 			//var edgeSchema = [{name:"E",properties:[]}];
 			//var vertexSchema = [{name:"V",properties:[]}];
@@ -1826,11 +2297,52 @@
 			this.resetGraph();
 			callback();
 		},
-		changeNodeLabel: function(label,nodeClass){//public
+		clusterLinks:function(node,nm,ce,cluster,clusterName,edgeType,st){
+			//handling the edges for the neighbor
+			if(node[edgeType]!=undefined){
+				var edgeArr = node[edgeType];
+				for(k in edgeArr){
+					if(nm[edgeArr[k]]!=undefined){
+						console.log(nm[edgeArr[k]]);
+						//delete edge that is within the cluster
+						nm[edgeArr[k]][st] = cluster["@rid"];
+						if(nm[edgeArr[k]]["target"]=="cluster"+clusterName && nm[edgeArr[k]]["source"]=="cluster"+clusterName){
+							cluster.edges.push(nm[edgeArr[k]]);
+							delete nm[edgeArr[k]];
+						}
+						//group all the links that is between clusters
+						if(nm[edgeArr[k]]!=undefined){
+							console.log(nm[edgeArr[k]]["target"]);
+							if(nm[edgeArr[k]]["target"].indexOf("cluster")>-1 
+								&& nm[edgeArr[k]]["source"].indexOf("cluster")>-1){
+								var clusterLink = nm[edgeArr[k]]["target"]+"_"+nm[edgeArr[k]]["source"];
+								if(ce[clusterLink]==undefined){
+									var rid = nm[edgeArr[k]]["source"]+"_"+nm[edgeArr[k]]["target"]
+									ce[clusterLink] = {in:nm[edgeArr[k]]["target"],
+														out:nm[edgeArr[k]]["source"],
+														"@rid":rid,
+														edges:[],
+														source:nm[edgeArr[k]]["source"],//source:nm[edgeArr[k]]["source"],
+														target:nm[edgeArr[k]]["target"]};//target:nm[edgeArr[k]]["target"]};
+								}
+								this.clusterMap[nm[edgeArr[k]]["source"]].clusterEdgeB.push(nm[edgeArr[k]]);
+								this.clusterMap[nm[edgeArr[k]]["target"]].clusterEdgeB.push(nm[edgeArr[k]]);
+								ce[clusterLink].edges.push(nm[edgeArr[k]]);
+								delete nm[edgeArr[k]];
+							}
+						}
+						//group edges that is towards the same clusters
+						
+					}
+				}
+			}
+			return {nm:nm,ce:ce,cluster:cluster};
+		},
+		changeNodeLabel: function(label,nodeClass){
 			this.options.nodeLabel[nodeClass] = label;
 			this.resetGraph();
 		},
-		changeClusteringMethod: function(method){//public
+		changeClusteringMethod: function(method){
 			this.options.clusteringMethod = method;
 			if(method!="attribute"){
 				this.clusters = undefined;
@@ -1838,7 +2350,7 @@
 				this.resetGraph();
 			}
 		},
-		changeClusteringClassAttribute: function(classType,attribute){//public
+		changeClusteringClassAttribute: function(classType,attribute){
 			this.options.clusteringClassAttribute[classType] = attribute;
 			if(this.options.clusteringMethod=="attribute"){
 				this.clusters = undefined;
@@ -1846,54 +2358,52 @@
 				this.resetGraph();
 			}
 		},
-		changeEdgeLabel: function(label,edgeClass){//public
+		changeEdgeLabel: function(label,edgeClass){
 			this.options.edgeLabel[edgeClass] = label;
 			this.resetGraph();
 		},
-		changeWeightageAttribute: function(attribute,edgeClass){//public
+		changeWeightageAttribute: function(attribute,edgeClass){
 			this.options.weight[edgeClass] = attribute;
 			this.resetGraph();
 		},
-		changeFilteringCondition: function(property,condition){//public
-			this.clusters=undefined;
-			this.clusterMap={};
-			this.options.filterType = property,
+		changeFilteringCondition: function(metric,condition){
+			this.options.filterType = metric,
 			this.options.filterCondition = condition;
 			this.resetGraph();
 		},
-		changeOverallEdgeClass: function(edgeClass){//public
+		changeOverallEdgeClass: function(edgeClass){
 			this.options.edgeUsed = edgeClass
 			//this.resetGraph();
 		},
-		changeNodeSizeProperty: function(property){//public
+		changeNodeSizeAttribute: function(attribute){
 			var parent = this;
 			var edgeType = this.options.edgeUsed;
 			if(edgeType!=""){
-				if(property==""){
+				if(attribute==""){
 					for(i in this.nodes){
 						this.nodes[i].weight = 0;
 					}
 					this.resetGraph();
-				}else if(property=="CC"){
+				}else if(attribute=="CC"){
 					for(i in this.nodes){
 						this.nodes[i].weight = this.calCC(this.nodes[i],edgeType);
 					}
 					this.resetGraph();
-				}else if(property=="betweeness"){
+				}else if(attribute=="betweeness"){
 					this.getBetweenness(edgeType,function(betweenness){
 						for(i in betweenness){
 							parent.nodeMap[i].weight = betweenness[i];
 						}
 						parent.resetGraph();
 					});
-				}else if(property=="closeness"){
+				}else if(attribute=="closeness"){
 					this.getCloseness(edgeType,function(closeness){
 						for(i in closeness){
 							parent.nodeMap[i].weight = closeness[i];
 						}
 						parent.resetGraph();
 					});
-				}else if(property=="degree"){
+				}else if(attribute=="degree"){
 					var max = this.getMaxDegree(edgeType);
 					var min = this.getMinDegree(edgeType);
 					var bottom = max-min;
@@ -1912,7 +2422,7 @@
 						}
 					}
 					this.resetGraph();
-				}else if(property=="pagerank"){
+				}else if(attribute=="pagerank"){
 					this.getPageRank(edgeType,function(pagerank){
 						for(i in pagerank){
 							parent.nodeMap[i].weight = pagerank[i].C;
@@ -2037,8 +2547,6 @@
 		return obj[key];
 	}
 	function findLargestSSE(CS,centroids){
-		console.log(CS);
-		console.log(centroids);
 		var centroidIndex;
 		var largest;
 		var largestCS = 0;
@@ -2046,7 +2554,7 @@
 			var ccs = centroids[i].CS;
 			for(j in centroids[i].nodes){
 				var diff = Math.abs(CS[centroids[i].nodes[j]] - ccs);
-				if(largestCS<=diff){
+				if(largestCS<diff){
 					centroidIndex = i;
 					largestCS = diff;
 					largest = centroids[i].nodes[j];

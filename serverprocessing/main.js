@@ -1,4 +1,5 @@
 var lib = require('./lib');
+var numericjs = require('./numeric-1.2.6');
 	
 const bodyParser = require('body-parser')
 const express = require('express')
@@ -28,6 +29,7 @@ app.use(function (req, res, next) {
     // Pass to next layer of middleware
     next();
 });
+//DONE
 app.post('/getDegreeDistribution', function(req, res){
 	var nodes = req.body.nodeMap;
 	var directed = req.body.directed;
@@ -93,6 +95,11 @@ app.post('/getDegreeDistribution', function(req, res){
 	}
 	res.send(realData);
 });
+app.get('/getEigenValues', function(req, res){
+	Lmatrix = req.body.Lmatrix;
+	var newvalue = numericjs.eig(Lmatrix);
+	res.send({num:newvalue});
+});
 app.post('/getDiameter', function(req, res){
 	var neighborMap = req.body.neighborMap;
 	var nodeMap = req.body.nodeMap;
@@ -101,6 +108,52 @@ app.post('/getDiameter', function(req, res){
 	var edgeType = req.body.edgeType;
 	var weightAttribute = req.body.weightAttribute;
 	
+	var apsp = lib.floydWarshall(nodeMap,edgeMap,weightAttribute,directed,edgeType);
+	var ld = 0;
+	var ldd = [];
+	var lds = [];
+	for(i in apsp.dist){
+		for(j in apsp.dist[i]){
+			if(apsp.dist[i][j]!=Number.MAX_SAFE_INTEGER){
+				if(apsp.dist[i][j]>ld){
+					ld = apsp.dist[i][j];
+					lds = [i];
+					ldd = [j];
+				}else if(apsp.dist[i][j]==ld){
+					if(directed=="false"){
+						var index1 = lds.indexOf(j);
+						var index2 = ldd.indexOf(i);
+						if(index1==-1||index2==-1||index1!=index2){
+							lds.push(i);
+							ldd.push(j);
+						}
+					}else{
+						lds.push(i);
+						ldd.push(j);
+					}
+				}
+			}
+		}
+	}
+	var paths = [];
+	for(i in lds){
+		var src = lds[i]; var dest = ldd[i];
+		if(apsp.path[src][dest]!=undefined){
+			var path = [src];
+			while(src!=dest){
+				//console.log(src+"->"+dest);
+				src = apsp.path[src][dest];
+				path.push(src);
+			}
+			paths.push(path);
+		}
+	}
+	
+	res.send({
+		dist: ld,
+		path: paths
+	});
+	/*
 	var ld = 0;
 	var ldp;
 	var lds = "";
@@ -114,7 +167,6 @@ app.post('/getDiameter', function(req, res){
 				lds = nodeID;
 			}
 		}
-
 	}
 	if (ldp != undefined) {
 		lib.path = [
@@ -128,8 +180,9 @@ app.post('/getDiameter', function(req, res){
 			dist: ld,
 			path: lib.path
 		});
-	}
+	}*/
 });
+//DONE
 app.post('/getCCDistribution', function(req, res){
 	var neighborMap = req.body.neighborMap;
 	var nodes = req.body.nodeMap;
@@ -162,13 +215,14 @@ app.post('/getCCDistribution', function(req, res){
 	var returnJSON = {data:realData,avg:avg};
 	res.send(returnJSON);
 });
+//DONE
 app.post('/getPageRank', function(req, res){
 	//PR(i) = sum of (PR(j->i))/(noOfOutGoingEdges(j));
 	var nodeMap = req.body.nodeMap;
 	var edgeMap = req.body.edgeMap;
 	var directed = req.body.directed;
 	var edgeType = req.body.edgeType;
-	var iteration = 2;//req.body.iteration;
+	var iteration = 10;//req.body.iteration;
 	var noOfNodes = 0;
 	var PR = {};
 	//init
@@ -180,17 +234,18 @@ app.post('/getPageRank', function(req, res){
 	}
 	//start iteration
 	for(var i=0;i<iteration;i++){
+		console.log("i:"+i);
 		for(id in PR){
 			var node = nodeMap[id];
 			var cPR = 0;
 			//find incoming nodes(directed) OR in/out(undirected)
 			var edges = [];
 			if(node["in_"+edgeType]!=undefined){
-				edges = node["in_"+edgeType];
+				edges = edges.concat(node["in_"+edgeType]);
 			}
-			if(directed=="true"){
+			if(directed=="false"){
 				if(node["out_"+edgeType]!=undefined){
-					edges = edges.concat(node["in_"+edgeType]);
+					edges = edges.concat(node["out_"+edgeType]);//edges.concat(node["out_"+edgeType]);//
 				}
 			}
 			for(j in edges){
@@ -201,7 +256,7 @@ app.post('/getPageRank', function(req, res){
 				if(innode["out_"+edgeType]!=undefined){
 					noOfOutGoingEdges += innode["out_"+edgeType].length;
 				}
-				if(directed=="true"){
+				if(directed=="false"){
 					if(innode["in_"+edgeType]!=undefined){
 						noOfOutGoingEdges += innode["in_"+edgeType].length;
 					}
@@ -210,6 +265,7 @@ app.post('/getPageRank', function(req, res){
 				cPR+=ePR;
 			}
 			PR[id].C = cPR;
+			console.log(id+":"+cPR);
 		}
 		for(id in PR){
 			PR[id].P = PR[id].C
@@ -259,6 +315,7 @@ app.post('/getBetweenness', function(req, res){
 	}
 	res.send(betweennessArray);
 });
+//DONE
 app.post('/getCloseness', function(req, res){
 	var closenessArray = {};
 	var neighborMap = req.body.neighborMap;
@@ -267,7 +324,23 @@ app.post('/getCloseness', function(req, res){
 	var directed = req.body.directed;
 	var edgeType = req.body.edgeType;
 	var weightAttribute = req.body.weightAttribute;
+	var apsp = lib.floydWarshall(nodeMap,edgeMap,weightAttribute,directed,edgeType);
 	for(nodeID in nodeMap){
+		var sum = 0;
+		var num = 0;
+		var closeness = 0;
+		for(ne in apsp.dist[nodeID]){
+			if(apsp.dist[nodeID][ne]!=Number.MAX_SAFE_INTEGER){
+				sum+=apsp.dist[nodeID][ne];
+				num++;
+			}
+		}
+		if(sum!=0){
+			closeness = (num-1)/sum; 
+		}
+		closenessArray[nodeID] = closeness;
+	}
+	/*for(nodeID in nodeMap){
 		//nodeID,neighborMap,nodeMap,edgeMap,directed,edgeType,weightAttribute
 		var distance = lib.shortestPath(nodeID,neighborMap,nodeMap,edgeMap,directed,edgeType,weightAttribute);
 		var sum = 0;
@@ -281,7 +354,7 @@ app.post('/getCloseness', function(req, res){
 			closeness = (num-1)/sum; 
 		}
 		closenessArray[nodeID] = closeness;
-	}
+	}*/
 	res.send(closenessArray);
 })
 

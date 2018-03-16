@@ -1,0 +1,55 @@
+for(n in nodes)
+	e = 0;
+	if(d(n)>=2)
+		for(neighbor1 in neighbor(n))
+			for(neighbor2 in neighbor(n))
+				if(checkEdge(neighbor1,neighbor2))
+					e++
+	CC = 2*e/(d(n)*(d(n)-1))
+	
+for(n in nodes)
+	e = 0;
+	for(n2 in nodes)
+		for(n3 in nodes)
+			if(checkEdge(n,n2,n3))
+				e++
+	CC = 2*e/(d(n)*(d(n)-1))
+	
+function floydWarshall(nodes,edges)
+	dist[nodes.length][nodes.length]
+	next[nodes.length][nodes.length]
+	for n in nodes
+		dist[n][n] = 0
+	for e in edges(src,dest)
+		dist[src][dest] = weight[src][dest]
+		next[src][dest] = dest
+	for n1 in nodes
+		for n2 in nodes
+			for n3 in nodes
+				if(dist[n2][n3]>dist[n2][n1] + dist[n1][n3])
+					dist[n2][n3] = dist[n2][n1] + dist[n1][n3]
+					next[n2][n3] = dest[n2][n1]
+	return dist,next			
+	
+function dijkstra(nodes,edges,source)
+	for n in nodes
+		dist[n] = infinite
+		pres[n] = null
+		visited[n] = false
+
+	dist[source] = 0
+	add source to priority queue(PQ) with priority 0
+	add all the other nodes into PQ with infinite priority
+	while(PQ isEmpty()==false)
+		node = PQ.smallest()
+		visited[node] = true
+		for ne in neighbor(node)
+			if(visited[ne]==true)
+				newDist = dist[node] + weight(node,ne)
+				if(newDist < dist[ne])
+					dist[ne] = newDist
+					pres[ne] = node
+					update ne priority to newDist in PQ
+	return dist,pres		
+	
+

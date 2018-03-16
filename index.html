@@ -38,6 +38,9 @@
 					<div class="form-group">
 						<input type="button" class="btn btn-default" value="Clear" id="clearBtn"/>
 					</div>
+					<div class="form-group">
+						<a href="" id="exportLink"></a>
+					</div>
 					<div class="form-group errormsgdiv">
 						<!--<div class="errormsg alert alert-danger fade in">
 						  <strong>Danger!</strong> Indicates a dangerous or potentially negative action.
@@ -172,10 +175,8 @@
 									<label for="ClusterBySelect" class="col-form-label">Cluster Method:</label>
 									<select id="ClusterBySelect" class="form-control">
 										<option value="off">Off</option>
-										<option value="degree">Degree</option>
-										<option value="CC">Clustering Coefficient</option>
-										<option value="closeness">Closeness</option>
-										<option value="attribute">Attribute</option>
+										<option value="kmeansClustering">K-Mean Clustering</option>
+										<option value="attribute">Node Attribute</option>
 									</select>
 									<div class="ClusterByNodeClassSelect">
 										<label for="ClusterByNodeClassSelect" class="col-form-label">Class:</label>
@@ -189,8 +190,10 @@
 											<option value=""></option>
 										</select>
 									</div>
-									<label for="NumOfClusterSelect"class="col-form-label">Number of Clusters:</label>
-									<input type="number" id="NumOfClusterSelect" class="form-control"/>
+									<div class="NumOfClusterSelect">
+										<label for="NumOfClusterSelect" class="col-form-label">Number of Clusters:</label>
+										<input type="number" id="NumOfClusterSelect" class="form-control"/>
+									</div>
 									<div class="FilterNodeMetric">
 										<label for="FilterNodeMetric" class="col-form-label">Filter By:</label>
 										<select id="FilterNodeMetric" class="form-control">
