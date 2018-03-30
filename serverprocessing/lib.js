@@ -76,18 +76,20 @@ exports.floydWarshall=function(nodeMap,edgeMap,weightAttribute,directed,edgeType
 	var dist = {};
 	var next = {};
 	for(n1 in nodeMap){
-		if(dist[n1]==undefined){
-			dist[n1] = {};
-			next[n1] = {};
+		var rid = nodeMap[n1]["@rid"];
+		if(dist[rid]==undefined){
+			dist[rid] = {};
+			next[rid] = {};
 		}
-		dist[n1][n1] = 0
+		dist[rid][rid] = 0
 		for(n2 in nodeMap){
-			if(n1!=n2){
-				dist[n1][n2] = Number.MAX_SAFE_INTEGER;
+			var rid2 = nodeMap[n2]["@rid"];
+			if(rid!=n2){
+				dist[rid][rid2] = Number.MAX_SAFE_INTEGER;
 			}
 		}
 	}
-	
+	//console.log(dist);
 	for(e in edgeMap){
 		var edge = edgeMap[e];
 		if(edge["@class"]==edgeType){
@@ -108,13 +110,16 @@ exports.floydWarshall=function(nodeMap,edgeMap,weightAttribute,directed,edgeType
 		}
 	}
 	for(n1 in nodeMap){
+		var rid1 = nodeMap[n1]["@rid"];
 		for(n2 in nodeMap){
+			var rid2 = nodeMap[n2]["@rid"];
 			for(n3 in nodeMap){
-				if(dist[n2][n3]>(dist[n2][n1] + dist[n1][n3])){
-					dist[n2][n3] = dist[n2][n1] + dist[n1][n3]
-					next[n2][n3] = next[n2][n1]//[next[n2][n1]]
-				}else if(dist[n2][n1]!=0&&dist[n1][n3]!=0&&
-					dist[n2][n3]==(dist[n2][n1] + dist[n1][n3]
+				var rid3 = nodeMap[n3]["@rid"];
+				if(dist[rid2][rid3]>(dist[rid2][rid1] + dist[rid1][rid3])){
+					dist[rid2][rid3] = dist[rid2][rid1] + dist[rid1][rid3]
+					next[rid2][rid3] = next[rid2][rid1]
+				}else if(dist[rid2][rid1]!=0&&dist[rid1][rid3]!=0&&
+					dist[rid2][rid3]==(dist[rid2][rid1] + dist[rid1][rid3]
 				)){
 					//next[n2][n3].push(next[n2][n1]);
 				}

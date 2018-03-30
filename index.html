@@ -8,6 +8,9 @@
 	<script src="//ajax.googleapis.com/ajax/libs/jquery/1.11.0/jquery.min.js"></script>
 	<script src="//netdna.bootstrapcdn.com/bootstrap/3.1.1/js/bootstrap.min.js"></script>
 	
+	<link href="https://gitcdn.github.io/bootstrap-toggle/2.2.2/css/bootstrap-toggle.min.css" rel="stylesheet">
+	<script src="https://gitcdn.github.io/bootstrap-toggle/2.2.2/js/bootstrap-toggle.min.js"></script>
+	
     <script src="https://d3js.org/d3.v4.min.js"></script>
 	<script src="js/priority_queue.js"></script>
 	<script src="js/distribution.js"></script>
@@ -16,7 +19,7 @@
 	<script src="js/UI.js"></script>
 </head>
 <body>
-	<nav class="navbar navbar-default navbar-fixed-top">
+	<nav class="navbar navbar-inverse ">
 		<div class="container-fluid">
 			<div class="navbar-header">
 				<form class="navbar-form navbar-left" role="search">
@@ -47,198 +50,252 @@
 						  <a href="#" class="close" data-dismiss="alert" aria-label="close">&times;</a>
 						</div>-->
 					</div>
-					
 				</form>
 			</div>
-			<div class="row">
-				<div class="col-md-8">
-					<button type="button" id="addBtn" class="btn btn-default btn-sm">
-					  <span class="glyphicon glyphicon-plus"></span>
-					</button>
-					<svg class="graph" id = "graph1"></svg>
+		</div>
+	</nav>
+	<div class="container-fluid main">
+		<div class="row">
+			<div class="col-md-8">
+				<div class="tab-content">
+					<div id="mainpanel" class="tab-pane fade in active">
+						<button type="button" id="addBtn" class="btn btn-default btn-sm">
+							<span class="glyphicon glyphicon-plus"></span>
+						</button>
+						<div class="checkbox" id="directedBtn">
+							<input type="checkbox" data-toggle="toggle" data-on="Directed" data-off="Undirected">
+						</div>
+						<svg class="graph" id = "graph1"></svg>
+					</div>
+					<div id="graphpanel" class="tab-pane fade">
+						meow
+					</div>
 				</div>
-				<div class="col-md-4">
-					<div class="row ">
-						<ul class="nav nav-pills">
-							<li class="active"><a data-toggle="pill" href="#NetD">Network Details</a></li>
-							<li><a data-toggle="pill" href="#NED">Node/Edge Details</a></li>
-							<li><a data-toggle="pill" href="#controlpanel">Control Panel</a></li>
+				<ul class="nav nav-pills nav-justified">
+					<li class="active nav-item"><a data-toggle="pill" href="#mainpanel">Graph</a></li>
+					<li class="nav-item"><a data-toggle="pill" id="degree" href="#graphpanel">Degree Distribution</a></li>
+					<li class="nav-item"><a data-toggle="pill" id="CC" href="#graphpanel">CC Distribution</a></li>
+					<li class="nav-item"><a data-toggle="pill" id="betweenness" href="#graphpanel">Betweenness</a></li>
+					<li class="nav-item"><a data-toggle="pill" id="closeness" href="#graphpanel">Closeness</a></li>
+					<li class="nav-item"><a data-toggle="pill" id="pagerank" href="#graphpanel">Page Rank</a></li>
+					<li class="nav-item"><a data-toggle="pill" id="diameter" href="#">Diameter</a></li>
+				</ul>
+			</div>
+			<div class="col-md-4">
+				<ul class="nav nav-tabs">
+					<li class="active"><a data-toggle="pill" href="#NetD">Network Details</a></li>
+					<li><a data-toggle="pill" href="#Filtering">Filtering</a></li>
+					<li><a data-toggle="pill" href="#Clustering">Clustering</a></li>
+					<li><a data-toggle="pill" href="#Others">Others</a></li>
+					<li style="display:none" class="nav-item"><a data-toggle="pill" href="#NED"></a></li>
+				</ul>
+				<div class="tab-content side ">
+					<div id="NetD" class="tab-pane fade in active">
+						<h4>Network Details</h4>
+						<div class="properties">
+						</div>
+						<div class="form-group">
+							<label for="OverallEdgeClassSelect">Edge Class:</label>
+							<select id="OverallEdgeClassSelect" class="form-control"></select>
+						</div>
+						<ul class="list-group distance">		
 						</ul>
-						<div class="tab-content">
-							<div id="NetD" class="tab-pane fade in active">
-								<h4>Network Details</h4>
-								<div class="properties">
-								</div>
-								<div class="form-group">
-									<label for="OverallEdgeClassSelect">Edge Class:</label>
-									<select id="OverallEdgeClassSelect" class="form-control"></select>
-								</div>
-								<input type="button" id="degree" data-toggle="modal" value="Degree"/>
-								<input type="button" id="CC" data-toggle="modal" value="CC" />
-								<input type="button" id="diameter" value="Diameter"/>
-								<input type="button" id="closeness" data-toggle="modal" value="Closeness" />
-								<input type="button" id="betweenness" data-toggle="modal" value="Betweenness" />
-								<input type="button" id="pagerank" data-toggle="modal" value="PageRank"/>
-								<br/><ul class="list-group distance">
-									
-								</ul>
+					</div>
+					<div id="Filtering" class="tab-pane fade">
+						<h4>Filtering</h4>
+						<span class="helpInfo">Allow you to focus on data with high relevance in the metric chosen.</span>
+						<div class="form-group">
+							<div class="FilterNodeMetric">
+								<label for="FilterNodeMetric" class="col-form-label">Metric:</label>
+								<select id="FilterNodeMetric" class="form-control">
+									<option value="off">Off</option>
+									<option value="degree">Degree</option>
+									<option value="CC">Clustering Coefficient</option>
+									<option value="closeness">Closeness</option>
+								</select>
 							</div>
-							<div id="NED" class="tab-pane fade">
-								<h4>Node/Edge Details</h4>
-								<div class="panel-group" id="accordion">
-									<div class="panel panel-default">
-										<div class="panel-heading">
-											<h4 class="panel-title">
-												<a data-toggle="collapse" data-parent="#accordion" href="#collapse1">Edit</a>
-											</h4>
-										</div>
-										<div id="collapse1" class="panel-collapse collapse in">
-											<div class="panel-body">
-												<form>
-													<div class="form-group selectClass">
-														<label for="classType">Type:</label>
-														<select id="classType" class="form-control">
-														</select>
-													</div>
-												</form>
-												<div class="form-group">
-													<input type="button" class="btn btn-info" id="CUbtn">
-												</div>
-												<div class="form-group">
-													<input type="button" class="btn btn-danger" value="delete" id="deletebtn">
-												</div>
-												
-												<input id="rid" type="hidden" value=""/>
-												<input id="ridfrom" type="hidden" value=""/>
-												<input id="ridto" type="hidden" value=""/>
-											</div>
-										</div>
-									</div>
-									<div class="panel panel-default">
-										<div class="panel-heading">
-											<h4 class="panel-title">
-												<a data-toggle="collapse" data-parent="#accordion" href="#collapse2">Matrics</a>
-											</h4>
-										</div>
-										<div id="collapse2" class="panel-collapse collapse">
-											<div class="panel-body">
-												<div class="table-responsive">
-													<table class="table"><tbody></tbody></table>
-												</div>
-											</div>
-										</div>
-									</div>
+							<span class="helpInfo">Nodes with higher chosen metric than the condition set below will appear.</span>
+							<div class="FilterNodeCondition">
+								<input type="range" min="1" max="100" value="0" class="slider" id="FilterNodeCondition">
+								<span id="FilterNodeConditionDisplay">0</span><span id="FilterNodeMetricDisplay"></span>
+							</div>
+						</div>
+					</div>
+					<div id="Clustering" class="tab-pane fade">
+						<h4>Clustering</h4>
+						<div class="form-group">
+							<label for="ClusterBySelect" class="col-form-label">Cluster Method:</label><br/>
+							<span class="helpInfo">Allow you to use various clustering algorithm to group nodes that are similar in it's structure.</span>
+							<select id="ClusterBySelect" class="form-control">
+								<option value="off">Off</option>
+								<option value="hiearchicalClustering">Hiearchical Clustering</option>
+								<option value="spectralClustering">Spectral Clustering</option>
+								<option value="attribute">Node Attribute</option>
+							</select>
+							
+							<div class="attributeoptions">
+								<label for="ClusterByNodeClassSelect" class="col-form-label">Class:</label><br/>
+								<span class="helpInfo">select the node class to choose the attribute you want to cluster by.</span>
+								<select id="ClusterByNodeClassSelect" class="form-control">
+									<option value=""></option>
+								</select>
+								<div class="ClusterByNodeAttributeSelect">
+									<label for="ClusterByNodeAttributeSelect" class="col-form-label">Attribute:</label><br/>
+									<span class="helpInfo">select the attribute you want to cluster by.</span>
+									<table style="width:100%" id="ClusterByNodeAttributeSelect"></table>
 								</div>
 							</div>
-							<div id="controlpanel" class="tab-pane fade">
-								<h5>directed/undirected</h5>
-								<div class="form-group selectClass">
-									<label for="directedSelect">Edge Mode:</label>
-									<select id="directedSelect" class="form-control">
-										<option value="directed">directed</option>
-										<option value="undirected">undirected</option>
-									</select>
+							<div class="kmeanoptions spectraloptions">
+								<label for="NumOfClusterSelect" class="col-form-label">Number of Clusters:</label><br/>
+								<span class="helpInfo">Number of clusters that the graph will form.</span>
+								<input type="number" value="2" id="NumOfClusterInput" class="form-control"/>
+							</div>
+							<div class="spectraloptions direction">
+								<label for="spectralDirection" class="col-form-label">Direction:</label><br/>
+								<span class="helpInfo">To take in account the direction used to form the Laplacian Matrix.</span>
+								<select id="spectralDirection" class="form-control">
+									<option value="both">Both</option>
+									<option value="in">In</option>
+									<option value="out">Out</option>
+								</select>
+							</div>
+							<div class="hiearchicaloptions">
+								<label for="hiearchicalThreshold" class="col-form-label">Threshold:</label><br/>
+								<span class="helpInfo">Any node pairs with cosine similarity less than threshold set will not be formed.</span>
+								<input type="range" min="0" max="1" step="0.05" value="0" class="slider" id="hiearchicalThreshold">
+								<span id="hiearchicalThresholdDisplay">0</span><br/>
+								<label for="hiearchicalLinkageCriteria" class="col-form-label">Linkage Criteria:</label><br/>
+								<span class="helpInfo">Method used to decide the new cosine similarity used for the new cluster formed.</span>
+								<select id="hiearchicalLinkageCriteria" class="form-control">
+									<option value="min">Single-link Clustering</option>
+									<option value="max">Complete-link Clustering</option>
+									<option value="average">Average-link Clustering</option>
+								</select>
+								<label for="hiearchicalDirection" class="col-form-label">Direction:</label><br/>
+								<span class="helpInfo">To take in account the direction used to calculate the cosine similarity.</span>
+								<select id="hiearchicalDirection" class="form-control">
+									<option value="both">Both</option>
+									<option value="in">In</option>
+									<option value="out">Out</option>
+								</select>
+							</div>
+							<input type="button" id="ClusteringSettingBtn" class="btn btn-success" value="Apply"/>
+						</div>
+					</div>
+					<div id="Others" class="tab-pane fade">
+						<div class="panel-group" id="othersaccordion">
+							<div class="panel panel-default">
+								<div class="panel-heading">
+									<h4 class="panel-title">
+										<a data-toggle="collapse" data-parent="#othersaccordion" href="#nodeSetting">Node Settings</a>
+									</h4>
 								</div>
-								<h5>node/edge label(give option to select type of node/edge)(zoom out will remove the label)</h5>
-								<div class="form-group">
-									<label for="nodeLabelClassSelect">Node Label Class:</label>
-									<select id="nodeLabelClassSelect" class="form-control"></select>
-									<label for="nodeLabelAttributeSelect">Node Label Attribute:</label>
-									<select id="nodeLabelAttributeSelect" class="form-control"></select>
-								</div>
-								<div class="form-group">
-									<label for="edgeLabelClassSelect">Edge Label Class:</label>
-									<select id="edgeLabelClassSelect" class="form-control"></select>
-									<label for="edgeLabelAttributeSelect">Edge Label Attribute:</label>
-									<select id="edgeLabelAttributeSelect" class="form-control"></select>
-								</div>
-								<h5>edit attribute to act as weight(give option to select type of edge)</h5>
-								<div class="form-group">
-									<label for="edgeClassSelect">Edge Class:</label>
-									<select id="edgeClassSelect" class="form-control"></select>
-									<label for="edgeWeightageAttributeSelect">Edge Weightage Attribute:</label>
-									<select id="edgeWeightageAttributeSelect" class="form-control"></select>
-								</div>
-								<div class="form-group">
-									<label for="NodeSizePropertySelect">Node Size Property:</label>
-									<select id="NodeSizePropertySelect" class="form-control">
-										<option value=""></option>
-										<option value="degree">degree</option>
-										<option value="CC">Clustering Coefficient</option>
-										<option value="closeness">Closeness</option>
-										<option value="betweeness">Betweeness</option>
-										<option value="pagerank">Page Rank</option>
-									</select>
-								</div>
-								<h5>Clustering</h5>
-								<div class="form-group">
-									<label for="ClusterBySelect" class="col-form-label">Cluster Method:</label>
-									<select id="ClusterBySelect" class="form-control">
-										<option value="off">Off</option>
-										<option value="kmeansClustering">K-Mean Clustering</option>
-										<option value="attribute">Node Attribute</option>
-									</select>
-									<div class="ClusterByNodeClassSelect">
-										<label for="ClusterByNodeClassSelect" class="col-form-label">Class:</label>
-										<select id="ClusterByNodeClassSelect" class="form-control">
-											<option value=""></option>
-										</select>
+								<div id="nodeSetting" class="panel-collapse collapse in">
+									<div class="panel-body">
+										<div class="form-group">
+											<label for="nodeClassSelect">Node Label Class:</label><br/>
+											<select id="nodeClassSelect" class="form-control"></select>
+											<label for="nodeLabelAttributeSelect">Node Label Attribute:</label><br/>
+											<span class="helpInfo">To take in account the direction used to calculate the cosine similarity.</span>
+											<table style="width:100%" id="nodeLabelAttributeSelect"></table>
+											<input type="button" id="nodeClassSettingBtn" class="btn btn-success" value="Apply"/>
+										</div>
 									</div>
-									<div class="ClusterByNodeAttributeSelect">
-										<label for="ClusterByNodeAttributeSelect" class="col-form-label">Attribute:</label>
-										<select id="ClusterByNodeAttributeSelect" class="form-control">
-											<option value=""></option>
-										</select>
+								</div>
+							</div>
+							<div class="panel panel-default">
+								<div class="panel-heading">
+									<h4 class="panel-title">
+										<a data-toggle="collapse" data-parent="#othersaccordion" href="#edgeSettings">Edge Settings</a>
+									</h4>
+								</div>
+								<div id="edgeSettings" class="panel-collapse collapse">
+									<div class="panel-body">
+										<div class="form-group">
+											<label for="edgeClassSelect">Edge Label Class:</label>
+											<select id="edgeClassSelect" class="form-control"></select>
+											<label for="edgeLabelAttributeSelect">Edge Label Attribute:</label>
+											<table style="width:100%" id="edgeLabelAttributeSelect"></table>
+											<label for="edgeWeightageAttributeSelect">Edge Weightage Attribute:</label>
+											<table style="width:100%" id="edgeWeightageAttributeSelect"></table>
+											<input type="button" id="edgeClassSettingBtn" class="btn btn-success" value="Apply"/>
+										</div>
 									</div>
-									<div class="NumOfClusterSelect">
-										<label for="NumOfClusterSelect" class="col-form-label">Number of Clusters:</label>
-										<input type="number" id="NumOfClusterSelect" class="form-control"/>
+								</div>
+							</div>
+							<div class="form-group">
+								<label for="NodeSizePropertySelect">Node Size Property:</label><br/>
+								<span class="helpInfo">Node property use to represent the node size for better visualization.</span>
+								<select id="NodeSizePropertySelect" class="form-control">
+									<option value=""></option>
+									<option value="degree">Degree</option>
+									<option value="CC">Clustering Coefficient</option>
+									<option value="closeness">Closeness</option>
+									<option value="betweeness">Betweeness</option>
+									<option value="pagerank">Page Rank</option>
+								</select>
+							</div>
+						</div>
+					</div>
+					<div id="NED" class="tab-pane fade ">
+						<h4>Node/Edge Details</h4>
+						<div class="panel-group" id="accordion">
+							<div class="panel panel-default">
+								<div class="panel-heading">
+									<h4 class="panel-title">
+										<a data-toggle="collapse" data-parent="#accordion" href="#collapse1">Edit</a>
+									</h4>
+								</div>
+								<div id="collapse1" class="panel-collapse collapse in">
+									<div class="panel-body">
+										<form>
+											<div class="form-group selectClass">
+												<label for="classType">Type:</label>
+												<select id="classType" class="form-control">
+												</select>
+											</div>
+										</form>
+										<div class="form-group">
+											<input type="button" class="btn btn-info" id="CUbtn">
+										</div>
+										<div class="form-group">
+											<input type="button" class="btn btn-danger" value="delete" id="deletebtn">
+										</div>
+										
+										<input id="rid" type="hidden" value=""/>
+										<input id="ridfrom" type="hidden" value=""/>
+										<input id="ridto" type="hidden" value=""/>
 									</div>
-									<div class="FilterNodeMetric">
-										<label for="FilterNodeMetric" class="col-form-label">Filter By:</label>
-										<select id="FilterNodeMetric" class="form-control">
-											<option value="off">Off</option>
-											<option value="degree">Degree</option>
-											<option value="CC">Clustering Coefficient</option>
-											<option value="closeness">Closeness</option>
-										</select>
-									</div>
-									<div class="FilterNodeCondition">
-										<input type="range" min="1" max="100" value="0" class="slider" id="FilterNodeCondition">
-										<span id="FilterNodeConditionDisplay">0</span>
+								</div>
+							</div>
+							<div class="panel panel-default">
+								<div class="panel-heading">
+									<h4 class="panel-title">
+										<a data-toggle="collapse" data-parent="#accordion" href="#collapse2">Matrics</a>
+									</h4>
+								</div>
+								<div id="collapse2" class="panel-collapse collapse">
+									<div class="panel-body">
+										<div class="table-responsive">
+											<table class="table"><tbody></tbody></table>
+										</div>
 									</div>
 								</div>
 							</div>
 						</div>
 					</div>
 				</div>
-			</div>
-			<div class="row">
-				<div class="col-md-12">
-					
 				</div>
 			</div>
-			
 		</div>
-	</nav>
+	</div>
+	<footer class="navbar-inverse">
+      <div class="container">
+        <p class="m-0 text-center text-white">Copyright &copy; GraphVisualiser 2018</p>
+      </div>
+    </footer>
 	<div class="loaderDiv">
 		<div class="loader"></div>
-	</div>
-	<div class="modal fade" id="graphModal" role="dialog">
-		<div class="modal-dialog modal-lg">
-			<div class="modal-content">
-				<div class="modal-header">
-					<button type="button" class="close" data-dismiss="modal">&times;</button>
-					<h4 class="modal-title">Modal Header</h4>
-				</div>
-				<div class="modal-body">
-					
-				</div>
-				<div class="modal-footer">
-					<button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
-				</div>
-			</div>
-		</div>
 	</div>
 </body>
 </html>

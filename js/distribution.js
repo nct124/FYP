@@ -11,21 +11,27 @@ function DegreeDistribution(data,avgDegree,gamma) {
 	}
 	this.RiemannZetaSum = function(){
 		var sum =0;
-		for(i in data){
+		for(i in this.data){
 			if(i!=0){
-				var k = data[i]["x"];
-				sum+= Math.pow(i, (-this.gamma));
+				var k = this.data[i]["x"];
+				sum+= (1/(Math.pow(i,this.gamma)))//Math.pow(i, (-this.gamma));
+				//console.log((1/(Math.pow(i,this.gamma)))+"=1/"+i+"^"+this.gamma);
 			}
 		}
+		//console.log("RZS:"+sum);
 		return sum;
 	}
 	this.powerLawDistribution = function(){
 		var sum = this.RiemannZetaSum();
 		for(i in data){
-			var k = data[i]["x"];
-			var powerlaw = (Math.pow(k, (-this.gamma)))/(sum);
-			//console.log("["+k+"^(-"+gamma+")]/"+sum+"="+powerlaw)
-			this.data[i]["powerlaw"] = powerlaw;
+			if(sum>0){
+				var k = data[i]["x"];
+				var powerlaw = (Math.pow(k, (-this.gamma)))/(sum);
+				//console.log("["+k+"^(-"+gamma+")]/"+sum+"="+powerlaw)
+				this.data[i]["powerlaw"] = powerlaw;
+			}else{
+				this.data[i]["powerlaw"] = 0;
+			}
 		}
 	}
 	this.fact = function(number){
@@ -58,18 +64,33 @@ function CCDistribution(data,avgDegree,numOfNodes) {
 	}
 	this.RiemannZetaSum = function(){
 		var sum =0;
-		for(i in data){
-			var k = data[i]["x"];
-			sum+= Math.pow(i, (-this.gamma));
+		for(i in this.data){
+			if(i!=0){
+				var k = this.data[i]["x"];
+				sum+= (1/(Math.pow(i,this.gamma)))//Math.pow(i, (-this.gamma));
+				//console.log((1/(Math.pow(i,this.gamma)))+"=1/"+i+"^"+this.gamma);
+			}
 		}
+		//console.log("RZS:"+sum);
 		return sum;
 	}
 	this.ScaleFreeDistribution = function(){
-		var sum = this.RiemannZetaSum();
+		/*var sum = this.RiemannZetaSum();
 		for(i in data){
 			var k = data[i]["x"];
 			var sf = (Math.pow(i, -1));
 			this.data[i]["Scale Free"] = sf;
+		}*/
+		var sum = this.RiemannZetaSum();
+		for(i in data){
+			if(sum>0){
+				var k = data[i]["x"];
+				var powerlaw = (Math.pow(k, (-this.gamma)))/(sum);
+				//console.log("["+k+"^(-"+gamma+")]/"+sum+"="+powerlaw)
+				this.data[i]["Scale Free"] = powerlaw;
+			}else{
+				this.data[i]["Scale Free"] = 0;
+			}
 		}
 	}
 	this.fact = function(number){

@@ -1,0 +1,25 @@
+coding:
+-hiearchical clustering:
+--use priority queue
+-validateform
+--do empty field
+-saveNetwork
+--need to have a checkUpdate function before calling the savenetwork function
+-page rank do the (d-1) thingie(DONE)
+-spectral need to update to use normalized laplacian matrix
+-transfer the webpage into the nodejs application
+-ways to show what the cluster represent
+
+report:
+-Abstract(5th)(done)
+-Acknowledgement(4th)(DONE)
+-update gantt chart(DONE)
+-nodejs API(2nd)(DONE)
+-page rank(1st)(DONE)
+-Conclusion and Future Work(3rd)(DONE)
+-add in sequence diagram(done)
+-CCdistribution need to finalize(DONE)
+-finish code rmb to update seq diagram(DONE)
+do testcase for clustering(spectral)(DONE)
+
+

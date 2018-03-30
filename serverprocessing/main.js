@@ -95,9 +95,15 @@ app.post('/getDegreeDistribution', function(req, res){
 	}
 	res.send(realData);
 });
-app.get('/getEigenValues', function(req, res){
-	Lmatrix = req.body.Lmatrix;
-	var newvalue = numericjs.eig(Lmatrix);
+app.post('/getEigenValues', function(req, res){
+	lmatrix = req.body.lmatrix;
+	for(i in lmatrix){
+		for(j in lmatrix[i]){
+			lmatrix[i][j] = parseInt(lmatrix[i][j]);
+		}
+	}
+	var newvalue = numericjs.eig(lmatrix);
+	console.log({num:newvalue});
 	res.send({num:newvalue});
 });
 app.post('/getDiameter', function(req, res){
@@ -107,8 +113,38 @@ app.post('/getDiameter', function(req, res){
 	var directed = req.body.directed;
 	var edgeType = req.body.edgeType;
 	var weightAttribute = req.body.weightAttribute;
-	
-	var apsp = lib.floydWarshall(nodeMap,edgeMap,weightAttribute,directed,edgeType);
+	var ld = 0;
+	var ldp;
+	var lds = "";
+	for (nodeID in nodeMap) {
+		var distance = lib.shortestPath(nodeID,neighborMap,nodeMap,edgeMap,directed,edgeType,weightAttribute);
+		//startRID,neighborMap,nodeMap,edgeMap,directed,edgeType,weightAttribute
+		if (distance.longestDistance != undefined) {
+			if (distance.longestDistance.dist > ld) {
+				ld = distance.longestDistance.dist;
+				ldp = distance;
+				lds = nodeID;
+			}
+		}
+	}
+	if (ldp != undefined) {
+		lib.path = [
+			[ldp.longestDistance.node]
+		];
+		lib.recursivePath(ldp.pres, lds, ldp.longestDistance.node, ldp.pres[ldp.longestDistance.node]);
+		for (i in lib.path) {
+			lib.path[i].unshift(lds);
+		}
+		console.log({
+			dist: ld,
+			path: lib.path
+		})
+		res.send({
+			dist: ld,
+			path: lib.path
+		});
+	}
+	/*var apsp = lib.floydWarshall(nodeMap,edgeMap,weightAttribute,directed,edgeType);
 	var ld = 0;
 	var ldd = [];
 	var lds = [];
@@ -152,35 +188,7 @@ app.post('/getDiameter', function(req, res){
 	res.send({
 		dist: ld,
 		path: paths
-	});
-	/*
-	var ld = 0;
-	var ldp;
-	var lds = "";
-	for (nodeID in nodeMap) {
-		var distance = lib.shortestPath(nodeID,neighborMap,nodeMap,edgeMap,directed,edgeType,weightAttribute);
-		//startRID,neighborMap,nodeMap,edgeMap,directed,edgeType,weightAttribute
-		if (distance.longestDistance != undefined) {
-			if (distance.longestDistance.dist > ld) {
-				ld = distance.longestDistance.dist;
-				ldp = distance;
-				lds = nodeID;
-			}
-		}
-	}
-	if (ldp != undefined) {
-		lib.path = [
-			[ldp.longestDistance.node]
-		];
-		lib.recursivePath(ldp.pres, lds, ldp.longestDistance.node, ldp.pres[ldp.longestDistance.node]);
-		for (i in lib.path) {
-			lib.path[i].unshift(lds);
-		}
-		res.send({
-			dist: ld,
-			path: lib.path
-		});
-	}*/
+	});*/
 });
 //DONE
 app.post('/getCCDistribution', function(req, res){
@@ -213,6 +221,7 @@ app.post('/getCCDistribution', function(req, res){
 	}
 	avg = avg / noOfNodes;
 	var returnJSON = {data:realData,avg:avg};
+	console.log(returnJSON);
 	res.send(returnJSON);
 });
 //DONE
@@ -222,9 +231,8 @@ app.post('/getPageRank', function(req, res){
 	var edgeMap = req.body.edgeMap;
 	var directed = req.body.directed;
 	var edgeType = req.body.edgeType;
-	var iteration = 10;//req.body.iteration;
-	var noOfNodes = 0;
 	var PR = {};
+	var d = 0.85;var errorallow = 0.005;var noOfNodes = 0;
 	//init
 	for(i in nodeMap){
 		noOfNodes++;
@@ -232,24 +240,24 @@ app.post('/getPageRank', function(req, res){
 	for(i in nodeMap){
 		PR[i] = {C:1/noOfNodes,P:1/noOfNodes};
 	}
-	//start iteration
-	for(var i=0;i<iteration;i++){
-		console.log("i:"+i);
+	var update = true;
+	while(update==true){
+		update = false;
 		for(id in PR){
 			var node = nodeMap[id];
 			var cPR = 0;
 			//find incoming nodes(directed) OR in/out(undirected)
-			var edges = [];
+			var inedges = [];
 			if(node["in_"+edgeType]!=undefined){
-				edges = edges.concat(node["in_"+edgeType]);
+				inedges = inedges.concat(node["in_"+edgeType]);
 			}
 			if(directed=="false"){
 				if(node["out_"+edgeType]!=undefined){
-					edges = edges.concat(node["out_"+edgeType]);//edges.concat(node["out_"+edgeType]);//
+					inedges = inedges.concat(node["out_"+edgeType]);
 				}
 			}
-			for(j in edges){
-				var eid = edges[j];
+			for(j in inedges){
+				var eid = inedges[j];
 				var innode = nodeMap[edgeMap[eid].out];
 				var prevPR = PR[innode["@rid"]].P
 				var noOfOutGoingEdges = 0;
@@ -264,13 +272,17 @@ app.post('/getPageRank', function(req, res){
 				var ePR = (prevPR)/(noOfOutGoingEdges);
 				cPR+=ePR;
 			}
-			PR[id].C = cPR;
-			console.log(id+":"+cPR);
+			PR[id].C = ((1-d)/noOfNodes)+(d*cPR);
 		}
 		for(id in PR){
+			var diff = Math.abs(PR[id].C-PR[id].P);
+			if(diff>errorallow){
+				update=true;
+			}
 			PR[id].P = PR[id].C
 		}
 	}
+	console.log(PR);
 	res.send(PR);
 });
 app.post('/getBetweenness', function(req, res){
@@ -281,11 +293,13 @@ app.post('/getBetweenness', function(req, res){
 	var directed = req.body.directed;
 	var edgeType = req.body.edgeType;
 	var weightAttribute = req.body.weightAttribute;
-
 	var betweennessArray = {};
 	var n = 0;
 	for (srcID in nodeMap) {
 		n++;
+		if (betweennessArray[srcID] == undefined) {
+			betweennessArray[srcID] = 0
+		}
 		var distance = lib.shortestPath(srcID,neighborMap,nodeMap,edgeMap,directed,edgeType,weightAttribute);
 		for (destID in distance.dist) {
 			for (node in nodeMap) {
@@ -310,9 +324,13 @@ app.post('/getBetweenness', function(req, res){
 		}
 	}
 	for (i in betweennessArray) {
-		betweennessArray[i] = betweennessArray[i] / 2;
-		betweennessArray[i] = betweennessArray[i] / ((n - 1) * (n - 1) / 2);
+		if(directed=="true"){
+			betweennessArray[i] = betweennessArray[i] / ((n - 1) * (n - 2));
+		}else{
+			betweennessArray[i] = betweennessArray[i] / ((n - 1) * (n - 2) / 2);
+		}
 	}
+	console.log(betweennessArray);
 	res.send(betweennessArray);
 });
 //DONE
@@ -324,7 +342,7 @@ app.post('/getCloseness', function(req, res){
 	var directed = req.body.directed;
 	var edgeType = req.body.edgeType;
 	var weightAttribute = req.body.weightAttribute;
-	var apsp = lib.floydWarshall(nodeMap,edgeMap,weightAttribute,directed,edgeType);
+	/*var apsp = lib.floydWarshall(nodeMap,edgeMap,weightAttribute,directed,edgeType);
 	for(nodeID in nodeMap){
 		var sum = 0;
 		var num = 0;
@@ -339,8 +357,8 @@ app.post('/getCloseness', function(req, res){
 			closeness = (num-1)/sum; 
 		}
 		closenessArray[nodeID] = closeness;
-	}
-	/*for(nodeID in nodeMap){
+	}*/
+	for(nodeID in nodeMap){
 		//nodeID,neighborMap,nodeMap,edgeMap,directed,edgeType,weightAttribute
 		var distance = lib.shortestPath(nodeID,neighborMap,nodeMap,edgeMap,directed,edgeType,weightAttribute);
 		var sum = 0;
@@ -354,7 +372,8 @@ app.post('/getCloseness', function(req, res){
 			closeness = (num-1)/sum; 
 		}
 		closenessArray[nodeID] = closeness;
-	}*/
+	}
+	console.log(closenessArray);
 	res.send(closenessArray);
 })
 

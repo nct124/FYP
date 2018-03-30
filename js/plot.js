@@ -1,31 +1,32 @@
-function HistogramGraph(modalDivID,data,title,labelX,labelY,avg) {
+function ScatterPlot(divID,data,title,labelX,labelY,avg) {
 						//"#graphModal",degreeDist,"x","y","degree distribution","k(in)","p(k)"
     this.data = data;
     this.labelX = labelX;
     this.labelY = labelY;
 	this.title = title
-	this.modalDivID = modalDivID;
-	this.svg = $(modalDivID+" svg");
-	this.header = $(modalDivID+" .modal-header h4");
+	this.divID = divID;
+	this.svg = $(divID+" svg");
+	this.header = $(divID+" .header h4");
 	this.header.html("Average: "+avg);
-	this.footer = $(modalDivID+" .modal-footer");
+	this.footer = $(divID+" .footer");
     this.plot = function() {
 		var parent = this;
 		var margin = {top: 40, right: 100, bottom: 40, left: 50},
 					width = 858 - margin.left - margin.right - 40+47,
 					height = 510 - margin.top - margin.bottom - 40;
-		var svg = d3.select(this.modalDivID+" .modal-body").append("svg")//d3.select(this.modalDivID+" svg")
+		var svg = d3.select(this.divID+" .body").append("svg")
 			.attr("width", width + margin.left + margin.right)
 			.attr("height", height + margin.top + margin.bottom)
 			.append("g")
 			.attr("transform",
 				  "translate(" + margin.left + "," + margin.top + ")");
+		var tooltip = d3.select(this.divID+" .body").append("div")
+			.attr("class","tooltip").html("asd");
 		var x = d3.scaleLinear()
 			.range([0, width]);
 		var y = d3.scaleLinear()
 			.range([height, 0]);
 		var z = d3.scaleOrdinal(d3.schemeCategory20);
-		console.log(this.data);
 		var seriesNames = d3.keys(data[0])
 			.filter(function(d) { return d !== "x"; })
 		// Map the data to an array of arrays of {x, y} tuples.
@@ -34,21 +35,11 @@ function HistogramGraph(modalDivID,data,title,labelX,labelY,avg) {
 				return {x: +d.x, y: +d[series]};
 			});
 		});
-
-		//x.domain(d3.extent(data, function(d) { return d[parent.X]; }));
-		//y.domain([0, d3.max(data, function(d) { return d[parent.Y]; })]);
+		
 		// Compute the scales’ domains.
 		x.domain(d3.extent(d3.merge(series), function(d) { return d.x; })).nice();
 		y.domain(d3.extent(d3.merge(series), function(d) { return d.y; })).nice();
 		
-		// Add the scatterplot
-		/*svg.selectAll("dot")
-			.data(data)
-			.enter().append("circle")
-			.attr("r", 5)
-			.attr("cx", function(d) { return x(d[parent.X]); })
-			.attr("cy", function(d) { return y(d[parent.Y]); });*/
-		// Add the points!
 		svg.selectAll(".series")
 			.data(series)
 			.enter().append("g")
@@ -56,11 +47,24 @@ function HistogramGraph(modalDivID,data,title,labelX,labelY,avg) {
 			.style("fill", function(d, i) { return z(i); })
 			.selectAll(".point")
 			.data(function(d) { return d; })
+			
 			.enter().append("circle")
 				.attr("class", "point")
 				.attr("r", 5)
 				.attr("cx", function(d) { return x(d.x); })
-				.attr("cy", function(d) { return y(d.y); });
+				.attr("cy", function(d) { return y(d.y); })
+				.on("mouseover", function(d) {
+					tooltip.transition()
+					 .duration(200)
+					 .style("opacity", .9);
+					tooltip.html("x:"+d.x+"<br/>y:"+d.y)
+					 .style("left", (d3.event.pageX -9) + "px")
+					 .style("top", (d3.event.pageY - 140) + "px");
+				}).on("mouseout", function(d) {
+					tooltip.transition()
+					 .duration(200)
+					 .style("opacity", 0);
+				});
 
 		// Add the X Axis
 		svg.append("g")

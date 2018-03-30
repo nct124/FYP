@@ -24,7 +24,6 @@
 			hiearchicalClusteringLinkageCriteria:"min",//hiearchicalClustering//min,max,avg
 			hiearchicalClusteringDirection:"both",//hiearchicalClustering//both,in,out
 			noOfCluster:10,//kmeans,spectral
-			spectralClusteringDirection:"both",
 			clusteringClassAttribute:{},//attribute
 			filterType : "off",
 			filterCondition : 0
@@ -188,7 +187,6 @@
         },
 		toggleDirected:function(directed){//directed
 			this.directed = directed;
-			this.clusters = undefined;
 			this.clusterMap={};
 			this.updateMapping();
 			this.resetGraph();
@@ -725,7 +723,6 @@
 							$("circle[rid='"+key+"']").attr("fill","orange");
 						}
 					}
-					$("circle[rid='"+node["@rid"]+"']").attr("fill","green");
 					//distance
 					parent.clickedNode = {source:node['@rid']};
 				}
@@ -795,6 +792,7 @@
 			var n = this.nodes.length;
 			var x = this.getMaxDegree(edgeType)/this.getMinDegree(edgeType)
 			var gamma = (Math.log(n)/(Math.log(x)+1));
+			console.log(gamma+"="+"log("+n+")/("+"log("+x+")+1)");
 			return gamma;
 		},
 		getCCDistribution: function(edgeType,callback){//public
@@ -890,6 +888,8 @@
 			this.resetGraph();
 		},
 		resetGraph:function(){
+			console.log("CM:"+this.options.clusteringMethod);
+			
 			this.svg.selectAll("*").remove();
 			var nodes = jQuery.extend(true, [], this.nodes);
 			var links = jQuery.extend(true, [], this.links);
@@ -920,11 +920,14 @@
 				this.displayLinks = net.links;
 				this.checkExpand();
 			}else if(this.options.clusteringMethod=="hiearchicalClustering"){
+				console.log(this.clusters);
 				if(this.clusters==undefined){
+					console.log("CLUSTERING");
 					this.clusters = this.hiearchicalClustering(this.displayNodes,this.displayLinks,this.options.edgeUsed,
 																this.options.hiearchicalClusteringThreshold,
 																this.options.hiearchicalClusteringLinkageCriteria,
 																this.options.hiearchicalClusteringDirection);
+					//this.clusters = this.hiearchicalClustering(this.displayNodes,this.displayLinks,this.options.edgeUsed,0.8);
 				}
 				var net = this.createClusters(this.displayNodes,this.displayLinks,this.clusters);
 				this.displayNodes = net.nodes;
@@ -932,24 +935,45 @@
 				this.checkExpand();
 			}else if(this.options.clusteringMethod=="spectralClustering"){
 				if(this.clusters==undefined){
-					this.clusters = this.spectralGraphPartition(this.displayNodes,this.displayLinks,this.options.edgeUsed,this.options.noOfCluster,this.options.spectralClusteringDirection);
+					this.clusters = this.spectralGraphPartition(this.displayNodes,this.displayLinks,this.options.edgeUsed,this.options.noOfCluster);
 				}
 				var net = this.createClusters(this.displayNodes,this.displayLinks,this.clusters);
 				this.displayNodes = net.nodes;
 				this.displayLinks = net.links;
 				this.checkExpand();
 			}else{
+				/*if(this.clusters==undefined){
+					this.clusters = this.spectralGraphPartition(this.displayNodes,this.displayLinks,this.options.edgeUsed);
+					console.log(this.clusters);
+				}
+				var net = this.createClusters(this.displayNodes,this.displayLinks,this.clusters);
+				this.displayNodes = net.nodes;
+				this.displayLinks = net.links;
+				this.checkExpand();*/
 				for(i in this.displayNodes){
 					this.displayNodes[i].cluster = undefined;
 				}
 			}
 			
 			this.init();
+			//console.log("init");
 			this.findDuplicateLinks();
+			//console.log("findDuplicateLinks");
 			this.displayGraph();
+			//console.log("displayGraph");
 			this.simulation.alpha(0.3).restart();
+			//console.log("restart");
 			var property = this.loadBasicNetworkProperties();
 			displayBasicNetworkProperties(property);
+			/*//console.log("property");
+			$("#NetD .properties").html("<div class='table-responsive'>"+
+											"<table class='table'><tbody></tbody></table>"+
+										"</div>");
+			var table = $("#NetD .properties table tbody")
+			for(i in property){
+				table.append("<tr><td>"+i+"</td><td>"+property[i]+"</td></tr>");
+			}*/
+			//console.log("Displayproperty");
 		},
 		getClass: function (vertex){
 			if(vertex){
@@ -957,6 +981,21 @@
 			}else{
 				return this.schemas.edge;
 			}
+			/*
+			var select = $("#classType");
+			select.html("");
+			select.append("<option value=''></option>")
+			if(vertex){
+				var properties = this.schemas.vertex;
+				for(var i=0;i<properties.length;i++){
+					select.append("<option value='"+properties[i].name+"'>"+properties[i].name+"</option>");
+				}
+			}else{
+				var properties = this.schemas.edge;
+				for(var i=0;i<properties.length;i++){
+					select.append("<option value='"+properties[i].name+"'>"+properties[i].name+"</option>");
+				}
+			}*/
 		},
 		deleteNodeinNetwork: function(rid,classType){//public
 			if(rid.charAt(0)=='#'){
@@ -967,6 +1006,13 @@
 			}
 			var newGraph = {nodes:[],links:[]};
 			var connectedLinks = deleteAssociatedEdge(json,this.links);
+			/*
+			for(var i=0;i<this.links.length;i++){
+				var connectedLink = this.links[i]
+				if(connectedLink.out==rid || connectedLink.in==rid){
+					connectedLinks.push({"@rid":connectedLink['@rid']});
+				}
+			}*/
 			//update maps
 			var schema = this.schemas;
 			for(var i=0;i<schema.edge.length;i++){
@@ -1031,10 +1077,10 @@
 				console.log("EigenValues error");
 			});
 		},
-		getLMatrix:function(nodes,links,edgeType,direction){
+		getLMatrix:function(nodes,links,edgeType){
 			var lmatrix = new Array(nodes.length);
 			var nodemap = {};
-			var neighborMap = this.getNeighborMapping(nodes,links,direction);
+			var neighborMap = this.getNeighborMapping(nodes,links,"both");
 			for(i in nodes){
 				nodemap[nodes[i]["@rid"]] = i;
 				var innerArr = new Array(nodes.length);
@@ -1059,8 +1105,10 @@
 			}
 			return {nodemap:nodemap,lmatrix:lmatrix};
 		},
-		spectralGraphPartition:function(nodes,links,edgeType,k,direction){
-			var lmatrix = this.getLMatrix(nodes,links,edgeType,direction);
+		spectralGraphPartition:function(nodes,links,edgeType,k){
+			var lmatrix = this.getLMatrix(nodes,links,edgeType);
+			console.log(lmatrix.lmatrix);
+			console.log(lmatrix.nodemap);
 			var centroids = [];
 			var parent = this;
 			this.getEigenValues(lmatrix.lmatrix,function(eigenvalues){
@@ -1068,10 +1116,12 @@
 				for(var j=0;j<k;j++){
 					var arr = [];
 					for(i in eigenvalues.num.E.x){
-						arr.push(eigenvalues.num.E.x[i][j]);
+						arr.push(eigenvalues.num.E.x[i][index[j]]);
 					}
 					eigenvaluesMatterOriginal.push(arr);
 				}
+				console.log("k largest eigan vector");
+				console.log(eigenvaluesMatterOriginal);
 				//normalizing
 				for(j in eigenvaluesMatterOriginal){
 					var sum = 0;
@@ -1083,7 +1133,138 @@
 						eigenvaluesMatterOriginal[j][i] = (eigenvaluesMatterOriginal[j][i]/sum);
 					}
 				}
-				centroids = parent.kmeansClustering(eigenvaluesMatterOriginal,k);
+
+				//do kmeansClustering
+				//1 randomly select k data points to act as centroids
+				//2 calculate cosine similarity between each data point and each centroid. This is just the normalized dot product.
+				//3 assign each data point to the cluster with which it has the *highest* cosine similarity.
+				//4 calculate the average of each cluster to get new centroids
+				//var centroids = [];
+
+				var asd = ["0","2"];
+				var used = {};
+				for(var i=0;i<k;i++){					
+					var node = asd[i];//(Math.floor(Math.random() * (nodes.length))).toString();
+					while(used[node]==true){
+						node = (Math.floor(Math.random() * (nodes.length)))
+					}
+					console.log("node:"+node+" chosen for centroid");
+					used[node] = true;
+					var vector = [];
+					for(var j=0;j<k;j++){
+						vector.push(eigenvaluesMatterOriginal[j][node]);
+					}
+					//console.log("node:"+node);
+					//console.log(vector);
+					centroids.push({vector:vector,nodes:[node]});
+				}
+				//console.log(centroids);
+				var updated = true;
+				var first = true;
+				while(updated==true){
+					updated = false;
+					//find and allocate the nodes to the nearest centroid
+					for(i in eigenvaluesMatterOriginal[0]){//i is the index of the nodes
+						var closest = -1;
+						var closestD = 999;
+						var inside = false;
+						var vectorNode = [];
+						for(var j=0;j<k;j++){
+							vectorNode.push(eigenvaluesMatterOriginal[j][i]);
+						}
+						//console.log(vectorNode);
+						for(c in centroids){
+							//console.log(centroids[c].nodes);
+							//console.log("i:"+i);
+							if(centroids[c].nodes.indexOf(i.toString())==-1){
+								var vectorC = centroids[c].vector;
+								var dist = EDist(vectorC,vectorNode);
+								//console.log(closestD+">"+dist)
+								if(closestD>dist){
+									//console.log("true");
+									closest = c;
+									closestD = dist;
+								}else{
+									//console.log("false");
+								}
+							}else{
+								inside=true;
+								//console.log("node("+i+") is inside centroid("+c+") alrdy");
+								break;
+							}
+						}
+						if(inside==false){
+							centroids[closest].nodes.push(i);
+							/*console.log(centroids[closest].vector)
+							console.log(vectorNode)
+							console.log(EDist(centroids[closest].vector,vectorNode))
+							console.log(closestD)
+							console.log("node("+i+") allocated to centroid("+closest+")");
+							*///console.log(centroids[0].nodes);
+							//console.log(centroids[1].nodes);
+						}
+					}
+					//check if any centroids are empty
+					for(c in centroids){
+						if(centroids[c].nodes.length==0){
+							//find largest SSE Node
+							var SSE = findLargestSSED(eigenvaluesMatterOriginal,centroids)
+							//console.log(SSE);
+							centroids[c].nodes.push(SSE.node);
+							var index = centroids[SSE.centroidIndex].nodes.indexOf(SSE.node);
+							centroids[SSE.centroidIndex].nodes.splice(index,1);
+						}
+					}
+					//check if its changed
+					if(first==true){
+						//console.log("SECOND ROUND");
+						first=false; updated = true;
+					}else{
+						for(i in centroids){
+							if(centroids[i].nodes.length!=centroids[i].pnodes.length){
+								//console.log("ANOTHER ROUND");
+								updated = true; break;
+							}
+							var nodes1; var nodes2;
+							if(centroids[i].nodes.length>=centroids[i].pnodes.length){nodes1=centroids[i].nodes; nodes2=centroids[i].pnodes;
+							}else{nodes2=centroids[i].nodes; nodes1=centroids[i].pnodes;}
+							for(j in nodes1){
+								if(nodes2.indexOf(nodes1[j])==-1){
+									//console.log("ANOTHER ROUND");
+									updated = true; break;
+								}
+							}
+						}
+					}
+					//check if updated then update centroid CS
+					if(updated==true){
+						console.log("UPDATED");
+						//update centroid CS
+						//console.log("NEW Centroid");
+						for(i in centroids){
+							//console.log("Centroid("+i+")");
+							var sum = 0;
+							var vectorC = [];
+							for(n in eigenvaluesMatterOriginal){
+								//console.log("next component");
+								var sum = 0;
+								for(j in centroids[i].nodes){
+									//console.log(eigenvaluesMatterOriginal[n][centroids[i].nodes[j]]);
+									sum+=eigenvaluesMatterOriginal[n][centroids[i].nodes[j]];
+								}
+								//console.log("sum");
+								//console.log(sum);
+								//console.log(sum/centroids[i].nodes.length);
+								vectorC.push((sum/centroids[i].nodes.length));
+							}
+							centroids[i].vector = vectorC;
+							centroids[i].pnodes = centroids[i].nodes;
+							//console.log(centroids[i].pnodes);
+							centroids[i].nodes = [];
+						}
+					}
+				}
+				//console.log(centroids);
 				for(i in centroids){
 					for(n in centroids[i].nodes){
 						var index = centroids[i].nodes[n];
@@ -1096,7 +1277,8 @@
 						centroids[i].nodes[n] = rid;
 					}
 				}
-				/*//when splitting to 2 equalsize graph
+				
+				/* when splitting to 2 equalsize graph
 				var lambda = eigenvalues.num.lambda.x.slice();
 				for(i in lambda){
 					lambda[i] = parseFloat(lambda[i]);
@@ -1149,6 +1331,7 @@
 					console.log(eigenvaluesMatterOriginal[i]>=median);
 					console.log(rid);
 					if(eigenvaluesMatterOriginal[i]>=median){
+						
 						A.nodes.push(rid);
 					}else{
 						
@@ -1161,7 +1344,10 @@
 			return centroids;
 		},
 		hiearchicalClustering:function(nodes,links,edgeType,threshold,linkageCriteria,direction){
+			//console.log(threshold,linkageCriteria,direction);
 			var CS = this.similarityCalculation(nodes,links,edgeType,direction);
+			console.log("CS");
+			console.log(CS);
 			var highest = 1;
 			var centroids = [];
 			var iter = 10;
@@ -1211,6 +1397,7 @@
 							CS[index1+"AND"+index2][i] = finalvalue;
 						}
 					}
+					//console.log(index1+","+index2);
 					delete CS[index1]
 					delete CS[index2]
 				}
@@ -1239,98 +1426,59 @@
 			}
 			return centroids;
 		},
-		kmeansClustering:function(vectors,k){
+		kmeansClustering:function(nodes,links,edgeType,k){
 			//what is needed: value of k
 			//1 randomly select k data points to act as centroids
-			//2 calculate eucidean distance between each data point and each centroid.
-			//3 assign each data point to the cluster with which it has the *smallest* distance
+			//2 calculate cosine similarity between each data point and each centroid. This is just the normalized dot product.
+			//3 assign each data point to the cluster with which it has the *highest* cosine similarity.
 			//4 calculate the average of each cluster to get new centroids
+			var CS = this.similarityCalculation(nodes,links,edgeType,"both");
+			//to make each node have only 1 value
+			var avgCS = {};
+			var n = nodes.length;
+			for(i in CS){
+				var avg = 1;
+				for(j in CS[i]){
+					avg+=CS[i][j];
+				}
+				avgCS[i] = avg/n;
+			}
+			
 			var centroids = [];
-			var centroidsB = [];
-			if(k<=vectors[0].length){
-				var used = {};
-				//getting k points
-				var centroidPoints = [];
-				//get 1st point at random
-				var node = (Math.floor(Math.random() * (vectors[0].length)));
-				centroidPoints.push(node.toString());
-				var vector = [];
-				for(var j=0;j<k;j++){
-					vector.push(vectors[j][node]);
+			if(k<=nodes.length){
+				var usedNodes = [];
+				//step 1
+				for(var i=1;i<=k;i++){
+					//randomly
+					var node = selectRandom(nodes,usedNodes)["@rid"];
+					centroids.push({CS:avgCS[node],nodes:[]});
+					usedNodes.push(node);
 				}
-				centroids.push({vector:vector,nodes:[node.toString()]});
-				used[node] = true;
-				//do for k-1
-				for(var i=0; i<(k-1); i++){
-					var potentialPoint;
-					var largestDist = 0;
-					//find largest distance between centroid and the other points that is not yet clustered;
-					for(j in vectors[0]){
-						var totalDist = 0;
-						var vectorUnclustered = [];
-						for(n in vectors){
-							vectorUnclustered.push(vectors[n][j]);
-						}
-						for(n in centroidPoints){
-							if(centroidPoints[n]!=j){
-								var vectorclustered = [];
-								for(m in vectors){
-									vectorclustered.push(vectors[m][centroidPoints[n]]);
-								}
-								var dist = EDist(vectorUnclustered,vectorclustered);
-								totalDist+=dist;
-							}
-						}
-						if(totalDist>largestDist){
-							largestDist = totalDist;
-							potentialPoint = j;
-						}
-					}
-					centroidPoints.push(potentialPoint);
-					var vector = [];
-					for(var j=0;j<k;j++){
-						vector.push(vectors[j][potentialPoint]);
-					}
-					centroids.push({vector:vector,nodes:[potentialPoint]});
-				}
+				var centroidResult = {};
 				var updated = true;
 				var first = true;
 				//converge
 				while(updated==true){
 					updated = false;
-					//find and allocate the nodes to the nearest centroid
-					for(i in vectors[0]){//i is the index of the nodes
-						var iStr = i.toString();
-						var num = i;
-						var closest = -1;
-						var closestD = 999;
-						var inside = false;
-						var vectorNode = [];
-						for(var j=0;j<k;j++){
-							vectorNode.push(vectors[j][num]);
-						}
+					for(nodeID in avgCS){
+						var closest;
+						var closestD = 1;
+						//find smallest difference
 						for(c in centroids){
-							if(centroids[c].nodes.indexOf(iStr)==-1){
-								var vectorC = centroids[c].vector;
-								var dist = EDist(vectorC,vectorNode);
-								if(closestD>dist){
-									closest = c;
-									closestD = dist;
+							if(centroids[c].nodes.indexOf(nodeID)==-1){
+								var diff = Math.abs(centroids[c].CS - avgCS[nodeID]);
+								if(closestD>diff){
+									closest = c; closestD = diff;
 								}
-							}else{
-								inside=true;
-								break;
 							}
 						}
-						if(inside==false){
-							centroids[closest].nodes.push(iStr);
-						}
+						centroids[closest].nodes.push(nodeID);
 					}
 					//check if any centroids are empty
 					for(c in centroids){
 						if(centroids[c].nodes.length==0){
 							//find largest SSE Node
-							var SSE = findLargestSSED(vectors,centroids)
+							var SSE = findLargestSSE(avgCS,centroids);
 							centroids[c].nodes.push(SSE.node);
 							var index = centroids[SSE.centroidIndex].nodes.indexOf(SSE.node);
 							centroids[SSE.centroidIndex].nodes.splice(index,1);
@@ -1359,15 +1507,10 @@
 						//update centroid CS
 						for(i in centroids){
 							var sum = 0;
-							var vectorC = [];
-							for(n in vectors){
-								var sum = 0;
-								for(j in centroids[i].nodes){
-									sum+=vectors[n][centroids[i].nodes[j]];
-								}
-								vectorC.push((sum/centroids[i].nodes.length));
+							for(j in centroids[i].nodes){
+								sum+=avgCS[centroids[i].nodes[j]];
 							}
-							centroids[i].vector = vectorC;
+							centroids[i].CS = sum/centroids[i].nodes.length;
 							centroids[i].pnodes = centroids[i].nodes;
 							centroids[i].nodes = [];
 						}
@@ -1403,6 +1546,7 @@
 					}
 				}
 			}
+			console.log(CS);
 			return CS;
 		},
 		deleteEdgeinNetwork: function(rid,classType){//public
@@ -1618,6 +1762,99 @@
 			ajax(functionURL,str,function(result){
 				parent.updateNetworkMap(result);
 			});
+			/*
+			ajax(functionURL,str,function(result){
+				var schema = parent.schemas;
+				//update UI after updating the database
+				var nodeID = result.result[0]["createdNodeRID"];
+				var linkID = result.result[0]["createdLinkRID"];
+				var newNodes = [];
+				var newLinks = [];
+				var removeNodes = [];
+				var removeLinks = [];
+				
+				//var tempneighborMap = {};
+				for(var i=0;i<parent.nodes.length;i++){
+					var pnode = parent.nodes[i];
+					if(nodeID[pnode['@rid']]){
+						var nnode = jQuery.extend(true, {}, pnode);
+						nnode['@rid'] = nodeID[pnode['@rid']];
+						newNodes.push(nnode);
+						removeNodes.push({"@rid":pnode['@rid']});
+						//update map
+						parent.nodeMap[nnode['@rid']] = nnode;
+						delete parent.nodeMap[pnode['@rid']];
+					}
+				}
+				for(var i=0;i<parent.links.length;i++){
+					var plink = parent.links[i];
+					if(linkID[plink['@rid']]){
+						var nlink = jQuery.extend(true, {}, plink);
+						nlink['@rid'] = linkID[plink['@rid']][0];
+						if(nlink['out'].charAt(0)!='#'){
+							//update map
+							if(parent.neighborMap[nlink["@class"]+"_"+nlink['out']]!=undefined){
+								var index = parent.neighborMap[nlink["@class"]+"_"+nlink['out']].indexOf(nlink["in"]);
+								if(index>-1){
+									//update neighborMap
+									parent.neighborMap[nlink["@class"]+"_"+nlink['out']].splice(index,1);
+									//parent.neighborMap[nlink["@class"]+"_"+nlink['source']['@rid']].push(nodeID[nlink['target']['@rid']]);
+									parent.neighborMap[nlink["@class"]+"_"+nlink['out']].push(nlink["in"]);
+									//update inner nodeMap linking
+									index = parent.nodeMap[nodeID[nlink['out']]]['out_'+nlink["@class"]].indexOf(plink['@rid']);
+									parent.nodeMap[nodeID[nlink['out']]]['out_'+nlink["@class"]].splice(index,1);
+									parent.nodeMap[nodeID[nlink['out']]]['out_'+nlink["@class"]].push(nlink['@rid']);
+									//index = parent.nodeMap[nodeID[nlink['target']['@rid']]]['in_'+nlink["@class"]].indexOf(plink['@rid']);
+									index = parent.nodeMap[nlink["in"]]['in_'+nlink["@class"]].indexOf(plink['@rid']);
+									parent.nodeMap[nlink["in"]]['in_'+nlink["@class"]].splice(index,1);
+									parent.nodeMap[nlink["in"]]['in_'+nlink["@class"]].push(nlink['@rid']);
+								}
+								parent.neighborMap[nlink["@class"]+"_"+nodeID[nlink['out']]] = parent.neighborMap[nlink["@class"]+"_"+nlink['out']];
+								delete parent.neighborMap[nlink["@class"]+"_"+nlink['out']];
+							}
+							nlink['source'] = nodeID[nlink['out']];
+							nlink['out'] = nodeID[nlink['out']];
+						}else{
+							nlink['source'] = nlink['out'];
+						}
+						if(nlink["in"].charAt(0)!='#'){
+							//update map
+							if(parent.neighborMap[nlink["@class"]+"_"+nlink["in"]]!=undefined){
+								var index = parent.neighborMap[nlink["@class"]+"_"+nlink["in"]].indexOf(nlink['out']);
+								if(index>-1){
+									//update neighborMap
+									parent.neighborMap[nlink["@class"]+"_"+nlink["in"]].splice(index,1);
+									parent.neighborMap[nlink["@class"]+"_"+nlink["in"]].push(nodeID[nlink['out']]);
+									//update inner nodeMap linking
+									index = parent.nodeMap[nodeID[nlink["in"]]]['in_'+nlink["@class"]].indexOf(plink['@rid']);
+									parent.nodeMap[nodeID[nlink["in"]]]['in_'+nlink["@class"]].splice(index,1);
+									parent.nodeMap[nodeID[nlink["in"]]]['in_'+nlink["@class"]].push(nlink['@rid']);
+									index = parent.nodeMap[nodeID[nlink['out']]]['out_'+nlink["@class"]].indexOf(plink['@rid']);
+									parent.nodeMap[nodeID[nlink['out']]]['out_'+nlink["@class"]].splice(index,1);
+									parent.nodeMap[nodeID[nlink['out']]]['out_'+nlink["@class"]].push(nlink['@rid']);
+								}
+								parent.neighborMap[nlink["@class"]+"_"+nodeID[nlink["in"]]] = parent.neighborMap[nlink["@class"]+"_"+nlink['out']];
+								delete parent.neighborMap[nlink["@class"]+"_"+nlink["in"]];
+							}
+							nlink['target'] = nodeID[nlink["in"]];
+							nlink['in'] = nodeID[nlink["in"]];
+						}else{
+							nlink['target'] = nlink["in"];
+						}
+						
+						newLinks.push(nlink);
+						removeLinks.push({"@rid":plink['@rid']});
+						//update map
+						parent.edgeMap[nlink['@rid']] = nlink;
+						delete parent.edgeMap[plink['@rid']];
+					}
+				}
+				var newGraph = {nodes:newNodes,links:newLinks}
+				var removeGraph = {nodes:removeNodes,links:removeLinks};
+				parent.updateGraph(newGraph,removeGraph);
+				parent.deleted.nodes = [];
+				parent.deleted.links = [];
+			});*/
 		},
 		updateNetworkMap: function(result){
 			var parent = this;
@@ -1931,10 +2168,14 @@
 						attribute = CCs[node["@rid"]];
 					}
 					if(attribute>=filterCondition){
+						console.log("insert:"+node["@rid"]);
 						network.nodes.push(node);
 					}else{
+						console.log("dropped:"+node["@rid"]);
+						console.log(node);
 						for(j in this.schemas.edge){
 							var edgeClass = this.schemas.edge[j].name;
+							console.log(edgeClass)
 							if(node["out_"+edgeClass]!=undefined){
 								for(k in node["out_"+edgeClass]){
 									var edgeID = node["out_"+edgeClass][k];
@@ -2071,6 +2312,7 @@
 			this.data = json;
 			this.loadData();
 			this.options.rdy();
+			//this.resetGraph();
 			
 			callback();
 		},
@@ -2091,10 +2333,9 @@
 			this.clusterMap={};
 			this.resetGraph();
 		},
-		setSpectralClusteringSettings:function(noOfCluster,direction){
+		setSpectralClusteringSettings:function(noOfCluster){
 			this.options.clusteringMethod = "spectralClustering";
 			this.options.noOfCluster = noOfCluster;
-			this.options.spectralClusteringDirection = direction;
 			this.clusters = undefined;
 			this.clusterMap={};
 			this.resetGraph();
@@ -2200,22 +2441,6 @@
 			data:jsonString,
 			method : "POST",
 			async:false
-		}).success(function(result){
-			$(".loaderDiv").css("display","none");
-			callback(result)
-		})
-		.error(function(result){
-			$(".loaderDiv").css("display","none");
-			error(result)
-		});
-	}
-	function ajaxServerAsync(url,jsonString,callback,error){
-		$(".loaderDiv").css("display","block");
-		$.ajax({
-			url: url,
-			crossDomain: true,
-			data:jsonString,
-			method : "POST",
 		}).success(function(result){
 			$(".loaderDiv").css("display","none");
 			callback(result)
@@ -2363,8 +2588,10 @@
 		var sum = 0;
 		for(i in vectorC){
 			sum +=Math.pow((vectorC[i]-vectorNode[i]),2);
+			//console.log(sum+"="+vectorC[i]+"-"+vectorNode[i]);
 		}
 		sum = Math.sqrt(sum);
+		//console.log(sum);
 		return sum;
 	}
 	function deleteAssociatedEdge(node,edges){
