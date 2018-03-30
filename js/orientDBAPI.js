@@ -1033,20 +1033,26 @@
 		},
 		getLMatrix:function(nodes,links,edgeType,direction){
 			var lmatrix = new Array(nodes.length);
+			var dmatrix = new Array(nodes.length);
 			var nodemap = {};
 			var neighborMap = this.getNeighborMapping(nodes,links,direction);
 			for(i in nodes){
 				nodemap[nodes[i]["@rid"]] = i;
 				var innerArr = new Array(nodes.length);
+				var innerArr2 = new Array(nodes.length);
 				for(var j=0;j<innerArr.length;j++){
 					innerArr[j] = 0;
+					innerArr2[j] = 0;
 				}
 				if(neighborMap[edgeType+"_"+nodes[i]["@rid"]]!=undefined){
 					innerArr[i] = neighborMap[edgeType+"_"+nodes[i]["@rid"]].length;
+					innerArr2[i] = Math.pow(neighborMap[edgeType+"_"+nodes[i]["@rid"]].length,(-1/2));
 				}else{
 					innerArr[i] = 0;
+					innerArr2[i] = 0;
 				}
 				lmatrix[i] = innerArr;
+				dmatrix[i] = innerArr2;
 			}
 			for(i in neighborMap){
 				var id = i.split("_")[1];
@@ -1057,6 +1063,8 @@
 					lmatrix[index][index2] = -1;
 				}
 			}
+			var lmatrix2 = matrixMult(dmatrix,lmatrix);
+			var finalLmatrix = matrixMult(lmatrix2,dmatrix);
 			return {nodemap:nodemap,lmatrix:lmatrix};
 		},
 		spectralGraphPartition:function(nodes,links,edgeType,k,direction){
@@ -1065,13 +1073,38 @@
 			var parent = this;
 			this.getEigenValues(lmatrix.lmatrix,function(eigenvalues){
 				var eigenvaluesMatterOriginal = [];
+				
+				//take smallest 3
+				var lambda = eigenvalues.num.lambda.x.slice();
+				for(i in lambda){
+					lambda[i] = parseFloat(lambda[i]);
+				}
+				lambda.sort(function(a,b){return a-b;});
+				var index = new Array(k);
+				for(var j=0;j<k;j++){
+					for(var i=0;i<eigenvalues.num.lambda.x.length;i++){
+						if(eigenvalues.num.lambda.x[i]==lambda[j]){
+							index[j] = i;
+							break;
+						}
+					}
+				}
+				for(j in index){
+					var arr = [];
+					for(i in eigenvalues.num.E.x){
+						arr.push(eigenvalues.num.E.x[i][index[j]]);
+					}
+					eigenvaluesMatterOriginal.push(arr);
+				}
+				
+				/*//take 1st k
 				for(var j=0;j<k;j++){
 					var arr = [];
 					for(i in eigenvalues.num.E.x){
 						arr.push(eigenvalues.num.E.x[i][j]);
 					}
 					eigenvaluesMatterOriginal.push(arr);
-				}
+				}*/
 				//normalizing
 				for(j in eigenvaluesMatterOriginal){
 					var sum = 0;
@@ -1156,7 +1189,8 @@
 					}
 				}
 				centroids.push(A);
-				centroids.push(B);*/
+				centroids.push(B);
+				console.log(centroids);*/
 			});
 			return centroids;
 		},
@@ -1164,7 +1198,83 @@
 			var CS = this.similarityCalculation(nodes,links,edgeType,direction);
 			var highest = 1;
 			var centroids = [];
-			var iter = 10;
+			var queue = new BinaryHeap(
+				function(element) {return element.CS;},
+				function(element) {return element.rid;},
+				'CS'
+			);
+			for(i in CS){
+				for(j in CS[i]){
+					var obj = {rid:i+"TO"+j,CS:(-1*CS[i][j])};
+					queue.push(obj);
+				}
+			}
+			
+			while(highest>=threshold){
+				if(Object.keys(CS[Object.keys(CS)[0]]).length==0){
+					break;
+				}
+				var localhighest = 0;
+				var index1=-1,index2=-1;
+				//find the most similar nodes
+				var obj = queue.pop();
+				localhighest = -1*obj.CS;
+				index1 = obj.rid.split("TO")[0];
+				index2 = obj.rid.split("TO")[1];
+				if(localhighest>=threshold){
+					for(i in CS){
+						if(i!=index1 && i!=index2){
+							var value1;var value2;var finalvalue;
+							//remove the merged cluster
+							for(j in CS[i]){
+								if(j==index1){value1=CS[i][j]; delete CS[i][j]; queue.decreaseKey(i+"TO"+j,1)}
+								if(j==index2){value2=CS[i][j]; delete CS[i][j]; queue.decreaseKey(i+"TO"+j,1)}
+							}
+							//linkageCriteria
+							if(linkageCriteria="min"){
+								if(value1>=value2){finalvalue = value1;}
+								else{finalvalue = value2;}
+							}else if(linkageCriteria="max"){
+								if(value1<value2){finalvalue = value1;}
+								else{finalvalue = value2;}
+							}else if(linkageCriteria="avg"){
+								finalvalue = (value1+value2)/2;
+							}
+
+							//create new merged cluster
+							if(CS[index1+"AND"+index2]==undefined){
+								CS[index1+"AND"+index2]={};
+							}
+							CS[i][index1+"AND"+index2] = finalvalue;
+							CS[index1+"AND"+index2][i] = finalvalue;
+							
+							var mergedRID = index1+"AND"+index2+"TO"+i;
+							var obj = {rid:mergedRID,CS:(-1*finalvalue)};
+							queue.push(obj);
+							var mergedRID2 = i+"TO"+index1+"AND"+index2;
+							var obj2 = {rid:mergedRID2,CS:(-1*finalvalue)};
+							queue.push(obj2);
+						}
+					}
+					for(i in CS[index1]){
+						if(i!=index2){
+							queue.decreaseKey(index1+"TO"+i,1)
+						}
+					}
+					for(i in CS[index2]){
+						queue.decreaseKey(index2+"TO"+i,1)
+					}
+					delete CS[index1]
+					delete CS[index2]
+				}else{
+					break;
+				}
+				if(Object.keys(CS).length==0){
+					break;
+				}
+				highest = localhighest;
+			}
+			/*
 			while(highest>=threshold){
 				if(Object.keys(CS[Object.keys(CS)[0]]).length==0){
 					break;
@@ -1218,7 +1328,7 @@
 					break;
 				}
 				highest = localhighest;
-			}
+			}*/
 			if(Object.keys(CS).length==0){
 				var C = {nodes:[]};
 				for(i in nodes){
@@ -2377,6 +2487,19 @@
 			}
 		}
 		return connectedLinks;
+	}
+	function matrixMult(matrix1,matrix2){
+		var finalmatrix = jQuery.extend(true, [], matrix1);
+		for(i in matrix1){
+			for(j in matrix1[i]){
+				var sum = 0;
+				for(k in matrix1){
+					sum += matrix1[i][k]*matrix2[k][j];
+				}
+				finalmatrix[i][j] = sum;
+			}
+		}
+		return finalmatrix;
 	}
 	function enableAnimation(){
 		setTimeout(function(){ active.animate=true;enableAnimation(); }, 5);

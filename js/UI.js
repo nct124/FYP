@@ -713,6 +713,20 @@ function displayClassPropertyForm(NE,formchild,classProperty){
 	}
 }
 function validateForm(){
+	var classes = active.getClass(true);
+	var formchild = $("#NED form div:nth-child(1)");
+	var classProperty;
+	if($("#classType")[0].options[1].value != classes[0].name){
+		classes = active.getClass(false);
+	}
+	var index = $("#classType")[0].selectedIndex-1;
+	classProperty = classes[index].properties;	
+	for(i in classProperty){
+		if($("#class_"+classProperty[i].name).val()==""){
+			return false;
+			displayErrorMsg("Please enter "+classProperty[i].name);
+		}
+	}
 	return true;
 }
 function displayErrorMsg(err){

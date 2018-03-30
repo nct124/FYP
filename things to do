@@ -1,12 +1,12 @@
 coding:
--hiearchical clustering:
---use priority queue
--validateform
---do empty field
+-hiearchical clustering:(DONE)
+--use priority queue(DONE)
+-validateform(DONE)
+--do empty field(DONE)
 -saveNetwork
 --need to have a checkUpdate function before calling the savenetwork function
 -page rank do the (d-1) thingie(DONE)
--spectral need to update to use normalized laplacian matrix
+-spectral need to update to use normalized laplacian matrix(done)
 -transfer the webpage into the nodejs application
 -ways to show what the cluster represent
 

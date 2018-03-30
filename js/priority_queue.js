@@ -131,7 +131,6 @@ BinaryHeap.prototype = {
 
         return n;
     },
-
     decreaseKey: function(id, value) {
         var n = this.map[id];
 		if(n==undefined){
