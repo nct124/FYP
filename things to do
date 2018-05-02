@@ -9,6 +9,9 @@ coding:
 -spectral need to update to use normalized laplacian matrix(done)
 -transfer the webpage into the nodejs application
 -ways to show what the cluster represent
+-draw dotted circle for radial layout
+-configure the normal to be ok
+- fix the arrow when its directed (Node size)
 
 report:
 -Abstract(5th)(done)

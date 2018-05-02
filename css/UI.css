@@ -8,6 +8,7 @@ footer {
 }
 #graphpanel{
 	height:100%;
+	overflow: auto;
 }
 #graphpanel .body{
 	overflow-y:auto;
@@ -97,7 +98,7 @@ svg.graph{
 #graphpanel .table td{
 	width:50%;
 }
-.attributeoptions,.kmeanoptions,.hiearchicaloptions,.spectraloptions{
+.attributeoptions,.kmeanoptions,.hiearchicaloptions,.spectraloptions,.layoutMetricSelectGroup{
 	display:none;
 }
 .loaderDiv{

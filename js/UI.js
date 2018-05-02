@@ -174,17 +174,68 @@ $( document ).ready(function() {
 		var nodes = {};
 		var edges = {};
 		var schemas = {vertex:{},edge:{}};
+		var extension = this.value.split('.').pop();
 		reader.onload = function(e) {
 			var raw = reader.result;
+			
 			try{
-				if(raw.search("#nodes property")==-1){
+				if(extension=="dl"){
+					var content = raw.split("DATA:");
+					var data = content[1].trim();
+					var labels = content[0].split("LEVEL LABELS:")[1].trim().split("\n");
+					var networkSize = content[0].split("LEVEL LABELS:")[0].trim().split("\n")[1].split(" ")[0].split("=")[1];
+					var edgeSchema = [];
+					var vertexSchema = [{name:"V",properties:[]}];
+					for(i in labels){
+						var edgeS = {name:labels[i].trim(),properties:[{name:"weightage"}]};
+						edgeSchema.push(edgeS);
+					}
+					for(var j=0;j<networkSize;j++){
+						var nodeID = "#"+(j+1);
+						nodes[nodeID] = {"@rid":nodeID,"@class":"V",}
+					}
+					
+					schemas.edge = edgeSchema;
+					schemas.vertex = vertexSchema;
+					
+					var datarow = data.split("\n");
+					
+					var f = 0;
+					for(i in  schemas.edge){
+						for(var j=0;j<networkSize;j++){
+							var DRC = datarow[(f*networkSize)+j].split(" ");
+							for(var k=0;k<networkSize;k++){
+								if(DRC[k]!=0){
+									var node1 = "#"+(j+1);
+									var node2 = "#"+(k+1);
+									var EID = node1+"to"+node2+":"+schemas.edge[i].name;
+									if(edges[node2+"to"+node1+":"+schemas.edge[i].name]==undefined){
+										edges[EID] = {"@rid":EID,"@class":schemas.edge[i].name,in:node2,out:node1,source:nodes[node1],target:nodes[node2]};
+										for(h in schemas.edge[i].properties){
+											edges[EID][schemas.edge[i].properties[h].name] = DRC[k];
+										}
+										if(nodes[node1]["out_"+schemas.edge[i].name]==undefined){
+											nodes[node1]["out_"+schemas.edge[i].name] = [];
+										}
+										nodes[node1]["out_"+schemas.edge[i].name].push(EID);
+										if(nodes[node1]["in_"+schemas.edge[i].name]==undefined){
+											nodes[node1]["in_"+schemas.edge[i].name] = [];
+										}
+										nodes[node1]["in_"+schemas.edge[i].name].push(EID);
+									}
+								}
+							}
+						}
+						f++;
+					}
+				}else if(raw.search("#nodes property")==-1){
 					var arr = raw.split("\n");
 					for(i in arr){
 						var temp = arr[i].toString().trim();
 						if(temp.charAt(0)!="#"){
 							var node12 = temp.split(" ");
-							var node1 = node12[0].toString();
-							var node2 = node12[1].trim().toString();
+							var node1 = "#"+node12[0].toString();
+							var node2 = "#"+node12[1].trim().toString();
 							if(nodes[node1]==undefined){
 								nodes[node1] = {"@rid":node1,"@class":"V",}
 							}
@@ -233,8 +284,8 @@ $( document ).ready(function() {
 						var temp = arrLink[i];
 						if(temp.charAt(0)!="#"){
 							var node12 = temp.split("to");
-							var node1 = node12[0];
-							var node2 = node12[1].trim();
+							var node1 = "#"+node12[0];
+							var node2 = "#"+node12[1].trim();
 							if(nodes[node1]==undefined){
 								nodes[node1] = {"@rid":node1}
 							}
@@ -634,6 +685,22 @@ $( document ).ready(function() {
 		var index = document.getElementById("nodeClassSelect").options[document.getElementById("nodeClassSelect").selectedIndex].value;
 		var label = $("input[name='nodeLabelAttributeSelect']:checked").val();
 		active.changeNodeLabel(label,active.schemas.vertex[index].name)
+	});
+	//layout
+	$("#layoutSelect").on("change",function(){
+		if(this.value=="radial"){
+			$(".layoutMetricSelectGroup").css("display","block");
+		}else{
+			$(".layoutMetricSelectGroup").css("display","none");
+		}
+	})
+	$("#layoutSettingBtn").on('click',function(){
+		var layout = $("#layoutSelect").val();
+		var metric = "";
+		if(layout=="radial"){
+			metric = $("#layoutMetricSelect").val();
+		}
+		active.changeLayout(layout,metric);
 	});
 });
 function highlightNode(rid,color){

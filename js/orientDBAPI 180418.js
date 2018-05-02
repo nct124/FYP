@@ -15,8 +15,8 @@
 			IDlink:"@rid",
 			schemaURL:"http://localhost:2480/function/Testing/classProperty/",
 			rdy:function(){},
-			radius:20,//20,
-			distance:500,
+			radius:20,
+			distance:1000,
 			nodeClick:function(node){},
 			edgeClick:function(edge){},
 			clusteringMethod:"off",
@@ -27,9 +27,7 @@
 			spectralClusteringDirection:"both",
 			clusteringClassAttribute:{},//attribute
 			filterType : "off",
-			filterCondition : 0,
-			layout:"",
-			layoutMetric:""
+			filterCondition : 0
         };
 		$.extend(this.options, options);
 		this.nodes = [];
@@ -68,33 +66,37 @@
 				$("#drawline").remove();
 			});
 			this.svg.append("g")
-			.attr("class","radialCircle");
-			this.svg.append("g")
 			.attr("class","wrapper");
 			rect = this.initZoom(rect);
 			rect = this.initMouseMove(rect);
+			//this.color = d3.scaleOrdinal(d3.schemeCategory10);
+			//this.color = d3.scaleOrdinal(d3.schemeCategory20);
+			//this.color = d3.scaleOrdinal(d3.schemeCategory20b);
+			//this.color = d3.scaleOrdinal(d3.schemeCategory20c);
 			this.nodeColor = d3.scaleOrdinal(d3.schemeCategory20b);
 			this.edgeColor = d3.scaleOrdinal(d3.schemeCategory10);
 			
 			//.gravity, .charge, .linkDistance and maybe also .linkStrength
 			this.simulation = d3.forceSimulation()
 			.force("link", d3.forceLink().id(function(d) { return d[parent.options.IDlink]; })
+			//.distance((parent.options.distance)/3)
 			.distance(function(d){
 				if(d.source.cluster==undefined || d.source.cluster==undefined){
 					return (parent.options.distance)/3;
 				}else if(d.source.cluster==d.target.cluster){
-					return (parent.options.distance)/3;
+					return (parent.options.distance)/6;
 				}else{
 					return (parent.options.distance)/3;
 				}
+				
 			})
-			//.strength(0.4)
-			)
+			.strength(1))
 			.force("collide",d3.forceCollide( function(d){return d.r + 0 }).iterations(16) )
 			.force("charge", d3.forceManyBody())
+			//.force("charge", function(d){return -30000})
 			.force("center", d3.forceCenter(width / 2, height / 2))
-			//.force("y", d3.forceY(height/2))
-            //.force("x", d3.forceX(width/2))
+			.force("y", d3.forceY(0))
+            .force("x", d3.forceX(0))
 			
 			// define arrow markers for graph links
 			var defs = this.svg.append('svg:defs');
@@ -154,7 +156,6 @@
 				}
 				if(checkVertex){
 					data[i].weight = 0;
-					data[i].weightLayout = 0;
 					this.nodes.push(data[i]);
 					this.nodeMap[(data[i]['@rid']).toString()] = data[i];
 				}else{
@@ -336,33 +337,6 @@
 			}
 			return visited;
 		},
-		radial:function(data, index, alpha){
-			var width = $(this.svg._groups[0][0]).parent().width()
-			var height = $(this.svg._groups[0][0]).parent().height()
-			var D2R = Math.PI / 180;
-			var startAngle = 30;
-			var radius = 300;
-			var currentAngle = startAngle + (30 * index);
-			var currentAngleRadians = currentAngle * D2R;
-			// the 500 & 250 are to center the circle we are creating
-			var radialPoint = {
-			  x: width/2 + (radius*(1-data.weightLayout)) * Math.cos(currentAngleRadians),
-			  y: (height/2)-200 + (radius*(1-data.weightLayout)) * Math.sin(currentAngleRadians)
-			};
-
-			// here we attenuate the effect of the centering
-			// by the alpha of the force layout. 
-			// this gives other forces - like gravity -
-			// to have an effect on the nodes
-			var affectSize = alpha * 0.1;
-
-			// here we adjust the x / y coordinates stored in our
-			// data to move them closer to where we want them
-			// this doesn't move the visual circles yet - 
-			// we will do that in moveToRadial
-			data.x += (radialPoint.x - data.x) * affectSize;
-			data.y += (radialPoint.y - data.y) * affectSize;
-		},
         displayGraph: function () {
 			//display network in SVG
 			var parent = this;
@@ -445,7 +419,7 @@
 			.attr("fill","white")
 			.attr("ridnlabel",function(d) { return d["@rid"]})
 			.style("font-family", "sans-serif")
-			.style("font-size", "14px")
+			.style("font-size", "0.7em")
 			.on("mouseover",this.mouseover)
 			.on("mouseout",this.mouseout)
 			.text(function(d) {
@@ -508,7 +482,7 @@
 				var curve = d3.line().curve(d3.curveCardinalClosed)
 				return curve(d.path);
 			})
-			.style("fill", function(d) {var fill = d3.scaleOrdinal(d3.schemeCategory20b); return fill(d.group); })
+			.style("fill", function(d) {var fill = d3.scaleOrdinal(d3.schemeCategory10); return fill(d.group); })
 			.on("click", function(d) {
 				for(cid in parent.clusterMap){
 					parent.clusterMap[cid].expand.P = parent.clusterMap[cid].expand.C
@@ -518,11 +492,10 @@
 			});
 			this.simulation
 			.nodes(this.displayNodes)
-			.on("tick", function(e){
+			.on("tick", function(){
 				if(parent.animate == true){
 					parent.hull.data(convexHulls(parent.clusterMap,parent.nodeMap, (parent.options.distance)/40))
 					.style("fill-opacity",0.3)
-					.style("fill", function(d) {var fill = d3.scaleOrdinal(d3.schemeCategory20b); return fill(d.group); })
 					.attr("d", function(d){
 						var curve = d3.line().curve(d3.curveCardinalClosed);
 						return curve(d.path);
@@ -534,9 +507,6 @@
 						 "A" + dr + "," + dr + " 0 0,1 " + d.target.x + "," + d.target.y;
 						//A rx,ry xAxisRotate LargeArcFlag,SweepFlag x,y"
 					});
-					if(parent.options.layout=="radial"){
-						parent.node.each(function(d,i) { parent.radial(d,i,0.1); });
-					}
 					parent.node
 					.attr("cx", function(d) { return d.x; })
 					.attr("cy", function(d) { return d.y; });
@@ -917,16 +887,6 @@
 			this.links = this.links.concat(newGraph.links);
 			this.resetGraph();
 		},
-		selectOverallEdgeType:function(links,edgeType){
-			var linksnew = [];
-			for(i in links){
-				var link = links[i]
-				if(link["@class"]==edgeType){
-					linksnew.push(link);
-				}
-			}
-			return linksnew;
-		},
 		resetGraph:function(){
 			this.svg.selectAll("*").remove();
 			var nodes = jQuery.extend(true, [], this.nodes);
@@ -940,7 +900,6 @@
 				this.displayNodes = nodes;
 				this.displayLinks = links;
 			}
-			this.displayLinks = this.selectOverallEdgeType(this.displayLinks,this.options.edgeUsed);
 			//clustering
 			if(this.options.clusteringMethod=="kmeansClustering"){
 				if(this.clusters==undefined){
@@ -1070,7 +1029,7 @@
 				console.log("EigenValues error");
 			});
 		},
-		getLMatrix:function(nodes,links,edgeType,direction,weightageAttr){
+		getLMatrix:function(nodes,links,edgeType,direction){
 			var lmatrix = new Array(nodes.length);
 			var dmatrix = new Array(nodes.length);
 			var nodemap = {};
@@ -1093,20 +1052,13 @@
 				lmatrix[i] = innerArr;
 				dmatrix[i] = innerArr2;
 			}
-			console.log(nodemap);
-			console.log(neighborMap);
 			for(i in neighborMap){
 				var id = i.split("_")[1];
 				var index = nodemap[id]
 				var neArr = neighborMap[i];
 				for(j in neArr){
 					var index2 = nodemap[neArr[j]];
-					if(weightageAttr=="" || weightageAttr==undefined){
-						lmatrix[index][index2] = -1;
-					}else{
-						var edge = getEdge(id,neArr[j],edgeType,this.nodeMap,this.edgeMap,this.directed);
-						lmatrix[index][index2] = -edge[weightageAttr];
-					}
+					lmatrix[index][index2] = -1;
 				}
 			}
 			var lmatrix2 = matrixMult(dmatrix,lmatrix);
@@ -1114,11 +1066,12 @@
 			return {nodemap:nodemap,lmatrix:lmatrix};
 		},
 		spectralGraphPartition:function(nodes,links,edgeType,k,direction){
-			var lmatrix = this.getLMatrix(nodes,links,edgeType,direction,"weightage");
+			var lmatrix = this.getLMatrix(nodes,links,edgeType,direction);
 			var centroids = [];
 			var parent = this;
 			this.getEigenValues(lmatrix.lmatrix,function(eigenvalues){
 				var eigenvaluesMatterOriginal = [];
+				
 				//take smallest 3
 				var lambda = eigenvalues.num.lambda.x.slice();
 				for(i in lambda){
@@ -2233,64 +2186,6 @@
 			this.options.nodeLabel[nodeClass] = label;
 			this.resetGraph();
 		},
-		changeLayout: function(layout,metric){//public
-			var parent = this;
-			var edgeType=this.options.edgeUsed;
-			this.options.layout = layout;
-			this.options.layoutMetric = metric;
-			if(metric==""){
-				for(i in this.nodes){
-					this.nodes[i].weight = 0;
-				}
-				this.resetGraph();
-			}else if(metric=="CC"){
-				for(i in this.nodes){
-					this.nodes[i].weightLayout = this.calCC(this.nodes[i],edgeType);
-				}
-				this.resetGraph();
-			}else if(metric=="betweeness"){
-				this.getBetweenness(edgeType,function(betweenness){
-					for(i in betweenness){
-						parent.nodeMap[i].weightLayout = betweenness[i];
-					}
-					parent.resetGraph();
-				});
-			}else if(metric=="closeness"){
-				this.getCloseness(edgeType,function(closeness){
-					for(i in closeness){
-						parent.nodeMap[i].weightLayout = closeness[i];
-					}
-					parent.resetGraph();
-				});
-			}else if(metric=="degree"){
-				var max = this.getMaxDegree(edgeType);
-				var min = this.getMinDegree(edgeType);
-				var bottom = max-min;
-				if(bottom>0){
-					for(i in this.nodeMap){
-						var degree = 0;
-						if(this.neighborMap[edgeType+"_"+i]!=undefined){
-							degree = this.neighborMap[edgeType+"_"+i].length;
-						}
-						var weight = (degree-min)/(max-min)
-						this.nodeMap[i].weightLayout = weight;
-					}
-				}else{
-					for(i in this.nodes){
-						this.nodes[i].weightLayout = 0;
-					}
-				}
-				this.resetGraph();
-			}else if(metric=="pagerank"){
-				this.getPageRank(edgeType,function(pagerank){
-					for(i in pagerank){
-						parent.nodeMap[i].weightLayout = pagerank[i].C;
-					}
-					parent.resetGraph();
-				});
-			}
-			this.resetGraph();
-		},
 		offClusteringMethod: function(){//public
 			this.options.clusteringMethod = "off";
 			this.clusters = undefined;
@@ -2498,29 +2393,15 @@
 		return true;
 	}
 	function getEdge(srid,drid,edgeType,nodeMap,edgeMap,directed) {
-		console.log(srid,drid,edgeType,directed);
-		console.log(nodeMap)
-		console.log(edgeMap)
 		var edges = [];
 		if(nodeMap[srid]["out_"+edgeType]!=undefined){
-			console.log(nodeMap[srid]["out_"+edgeType])
 			edges = nodeMap[srid]["out_"+edgeType];
 		}
 		if(directed==false){
 			if(nodeMap[srid]["in_"+edgeType]!=undefined){
-				console.log(nodeMap[srid]["in_"+edgeType])
 				edges = edges.concat(nodeMap[srid]["in_"+edgeType]);
 			}
-			if(nodeMap[drid]["out_"+edgeType]!=undefined){
-				console.log(nodeMap[drid]["out_"+edgeType])
-				edges = edges.concat(nodeMap[drid]["out_"+edgeType]);
-			}
-			if(nodeMap[drid]["in_"+edgeType]!=undefined){
-				console.log(nodeMap[drid]["in_"+edgeType])
-				edges = edges.concat(nodeMap[drid]["in_"+edgeType]);
-			}
 		}
-		//console.log(edges);
 		for(e in edges){
 			var edge = edgeMap[edges[e]];
 			if(edge['in']==drid){

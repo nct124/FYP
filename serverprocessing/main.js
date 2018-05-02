@@ -282,7 +282,7 @@ app.post('/getPageRank', function(req, res){
 			PR[id].P = PR[id].C
 		}
 	}
-	console.log(PR);
+	//console.log(PR);
 	res.send(PR);
 });
 app.post('/getBetweenness', function(req, res){
@@ -330,7 +330,7 @@ app.post('/getBetweenness', function(req, res){
 			betweennessArray[i] = betweennessArray[i] / ((n - 1) * (n - 2) / 2);
 		}
 	}
-	console.log(betweennessArray);
+	//console.log(betweennessArray);
 	res.send(betweennessArray);
 });
 //DONE
@@ -373,7 +373,7 @@ app.post('/getCloseness', function(req, res){
 		}
 		closenessArray[nodeID] = closeness;
 	}
-	console.log(closenessArray);
+	//console.log(closenessArray);
 	res.send(closenessArray);
 })
 

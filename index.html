@@ -223,6 +223,37 @@
 									</div>
 								</div>
 							</div>
+							<div class="panel panel-default">
+								<div class="panel-heading">
+									<h4 class="panel-title">
+										<a data-toggle="collapse" data-parent="#othersaccordion" href="#layoutSetting">Layout Settings</a>
+									</h4>
+								</div>
+								<div id="layoutSetting" class="panel-collapse collapse">
+									<div class="panel-body">
+										<div class="form-group">
+											<label for="layoutSelect">Layout Type:</label><br/>
+											<select id="layoutSelect" class="form-control">
+												<option value="">Normal</option>
+												<option value="radial">Radial</option>
+											</select>
+											<div class="form-group layoutMetricSelectGroup">
+												<label for="layoutMetricSelect">Metric:</label><br/>
+												<span class="helpInfo">Metric used to determine the layout.</span>
+												<select id="layoutMetricSelect" class="form-control">
+													<option value=""></option>
+													<option value="degree">Degree</option>
+													<option value="CC">Clustering Coefficient</option>
+													<option value="closeness">Closeness</option>
+													<option value="betweeness">Betweeness</option>
+													<option value="pagerank">Page Rank</option>
+												</select>
+											</div>
+											<input type="button" id="layoutSettingBtn" class="btn btn-success" value="Apply"/>
+										</div>
+									</div>
+								</div>
+							</div>
 							<div class="form-group">
 								<label for="NodeSizePropertySelect">Node Size Property:</label><br/>
 								<span class="helpInfo">Node property use to represent the node size for better visualization.</span>
@@ -235,6 +266,7 @@
 									<option value="pagerank">Page Rank</option>
 								</select>
 							</div>
+							
 						</div>
 					</div>
 					<div id="NED" class="tab-pane fade ">
