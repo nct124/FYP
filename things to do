@@ -7,11 +7,12 @@ coding:
 --need to have a checkUpdate function before calling the savenetwork function
 -page rank do the (d-1) thingie(DONE)
 -spectral need to update to use normalized laplacian matrix(done)
--transfer the webpage into the nodejs application
+-transfer the webpage into the nodejs application(DONE)
 -ways to show what the cluster represent
 -draw dotted circle for radial layout
 -configure the normal to be ok
-- fix the arrow when its directed (Node size)
+-fix the arrow when its directed (Node size)(DONE)
+-add settting for size of circle/distance of line(DONE)
 
 report:
 -Abstract(5th)(done)

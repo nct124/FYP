@@ -702,6 +702,14 @@ $( document ).ready(function() {
 		}
 		active.changeLayout(layout,metric);
 	});
+	$("#edgeLengthSettingBtn").on("click",function(){
+		var length = parseInt($("#edgeLength").val());
+		active.changeEdgeLength(length);
+	});
+	$("#nodeSizeSettingBtn").on("click",function(){
+		var radius = parseInt($("#nodeSize").val());
+		active.changeNodeSize(radius);
+	});
 });
 function highlightNode(rid,color){
 	$(".nodes circle[rid='"+rid+"']").attr("fill",color);

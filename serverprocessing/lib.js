@@ -89,7 +89,6 @@ exports.floydWarshall=function(nodeMap,edgeMap,weightAttribute,directed,edgeType
 			}
 		}
 	}
-	//console.log(dist);
 	for(e in edgeMap){
 		var edge = edgeMap[e];
 		if(edge["@class"]==edgeType){
@@ -254,8 +253,6 @@ BinaryHeap.prototype = {
 
         this.content.push(elt);
         var index = this.bubbleUp(this.content.length - 1);
-        //this.map[this.idFunction(elt)] = index;
-        //console.log(this.map);
     },
 
     pop: function() {
@@ -268,8 +265,6 @@ BinaryHeap.prototype = {
             this.content[0] = end;
             this.map[this.idFunction(end)] = 0;
             var index = this.sinkDown(0);
-            //this.map[this.idFunction(end)] = index;
-            //console.log(this.map);
         }
 
         return result;
@@ -282,13 +277,10 @@ BinaryHeap.prototype = {
         while( n > 0 ) {
             var parentN = Math.floor((n-1)/2);
             var parent = this.content[parentN];
-            //console.log('Element index: ' + n);
-            //console.log('Parent index: ' + parentN + ', Parent element: ' + parent);
 
             if( this.scoreFunction(parent) < score )
                 break;
 
-            //console.log('Element score ', score, ' < Parent score ', this.scoreFunction(parent), ' => swap');
             this.map[this.idFunction(element)] = parentN;
             this.map[this.idFunction(parent)] = n;
 
@@ -310,16 +302,10 @@ BinaryHeap.prototype = {
             var child2N = (n + 1) * 2;
             var child1N = child2N - 1;
             var swap = null;
-/*
-            console.log('element: ' + element, ', score: ' + score, ', position: ', n);
-            console.log('child1: ' + child1N, ',', this.content[child1N]);
-            console.log('child2: ' + child2N, ',', this.content[child2N]);
-*/
             if(child1N < this.content.length) {
                 var child1 = this.content[child1N];
                 child1score = this.scoreFunction(child1);
                 if( score > child1score ) {
-                    //console.log('child1 score < elemscore');
                     swap = child1N;
                 }
             }
@@ -327,9 +313,8 @@ BinaryHeap.prototype = {
             if(child2N < this.content.length) {
                 var child2 = this.content[child2N];
                 var child2score = this.scoreFunction(child2);
-                //console.log((swap == null ? score : child1score), ' >= ', child2score, ' => ', (swap == null ? score : child1score) >= child2score);
                 if( (swap == null ? score : child1score) > child2score) {
-                    //console.log('child2 score < elemscore');
+                    
                     swap = child2N;
                 }
             }
@@ -337,7 +322,6 @@ BinaryHeap.prototype = {
             if(swap == null) break;
 
 
-            //console.log('swap ', n, ' with ', swap);
             this.map[this.idFunction(this.content[swap])] = n;
             this.map[this.idFunction(element)] = swap;
             
@@ -355,7 +339,6 @@ BinaryHeap.prototype = {
 		if(n==undefined){
 			this.push({rid:id,weight:value});
 		}else{
-			//console.log('Decreasing key for element ' + id + ' from value ' + this.content[n][this.valueProp] + ' to ' + value);
 			this.content[n][this.valueProp] = value;
 			this.bubbleUp(n);
 		}

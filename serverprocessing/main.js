@@ -1,4 +1,5 @@
 var lib = require('./lib');
+var path = require('path')
 var numericjs = require('./numeric-1.2.6');
 	
 const bodyParser = require('body-parser')
@@ -15,6 +16,7 @@ app.use(bodyParser.json({
      parameterLimit: 10000000,
      limit: 1024 * 1024 * 1024 * 1024 * 10
 }));
+app.use(express.static(path.join(__dirname, 'public')));
 // Add headers
 app.use(function (req, res, next) {
     // Website you wish to allow to connect
@@ -29,7 +31,9 @@ app.use(function (req, res, next) {
     // Pass to next layer of middleware
     next();
 });
-//DONE
+app.get('/', function(req, res){
+	res.sendFile(__dirname+'/index.html');
+});
 app.post('/getDegreeDistribution', function(req, res){
 	var nodes = req.body.nodeMap;
 	var directed = req.body.directed;
@@ -144,53 +148,7 @@ app.post('/getDiameter', function(req, res){
 			path: lib.path
 		});
 	}
-	/*var apsp = lib.floydWarshall(nodeMap,edgeMap,weightAttribute,directed,edgeType);
-	var ld = 0;
-	var ldd = [];
-	var lds = [];
-	for(i in apsp.dist){
-		for(j in apsp.dist[i]){
-			if(apsp.dist[i][j]!=Number.MAX_SAFE_INTEGER){
-				if(apsp.dist[i][j]>ld){
-					ld = apsp.dist[i][j];
-					lds = [i];
-					ldd = [j];
-				}else if(apsp.dist[i][j]==ld){
-					if(directed=="false"){
-						var index1 = lds.indexOf(j);
-						var index2 = ldd.indexOf(i);
-						if(index1==-1||index2==-1||index1!=index2){
-							lds.push(i);
-							ldd.push(j);
-						}
-					}else{
-						lds.push(i);
-						ldd.push(j);
-					}
-				}
-			}
-		}
-	}
-	var paths = [];
-	for(i in lds){
-		var src = lds[i]; var dest = ldd[i];
-		if(apsp.path[src][dest]!=undefined){
-			var path = [src];
-			while(src!=dest){
-				//console.log(src+"->"+dest);
-				src = apsp.path[src][dest];
-				path.push(src);
-			}
-			paths.push(path);
-		}
-	}
-	
-	res.send({
-		dist: ld,
-		path: paths
-	});*/
 });
-//DONE
 app.post('/getCCDistribution', function(req, res){
 	var neighborMap = req.body.neighborMap;
 	var nodes = req.body.nodeMap;
@@ -224,7 +182,6 @@ app.post('/getCCDistribution', function(req, res){
 	console.log(returnJSON);
 	res.send(returnJSON);
 });
-//DONE
 app.post('/getPageRank', function(req, res){
 	//PR(i) = sum of (PR(j->i))/(noOfOutGoingEdges(j));
 	var nodeMap = req.body.nodeMap;
@@ -282,7 +239,6 @@ app.post('/getPageRank', function(req, res){
 			PR[id].P = PR[id].C
 		}
 	}
-	//console.log(PR);
 	res.send(PR);
 });
 app.post('/getBetweenness', function(req, res){
@@ -330,10 +286,8 @@ app.post('/getBetweenness', function(req, res){
 			betweennessArray[i] = betweennessArray[i] / ((n - 1) * (n - 2) / 2);
 		}
 	}
-	//console.log(betweennessArray);
 	res.send(betweennessArray);
 });
-//DONE
 app.post('/getCloseness', function(req, res){
 	var closenessArray = {};
 	var neighborMap = req.body.neighborMap;
@@ -342,22 +296,6 @@ app.post('/getCloseness', function(req, res){
 	var directed = req.body.directed;
 	var edgeType = req.body.edgeType;
 	var weightAttribute = req.body.weightAttribute;
-	/*var apsp = lib.floydWarshall(nodeMap,edgeMap,weightAttribute,directed,edgeType);
-	for(nodeID in nodeMap){
-		var sum = 0;
-		var num = 0;
-		var closeness = 0;
-		for(ne in apsp.dist[nodeID]){
-			if(apsp.dist[nodeID][ne]!=Number.MAX_SAFE_INTEGER){
-				sum+=apsp.dist[nodeID][ne];
-				num++;
-			}
-		}
-		if(sum!=0){
-			closeness = (num-1)/sum; 
-		}
-		closenessArray[nodeID] = closeness;
-	}*/
 	for(nodeID in nodeMap){
 		//nodeID,neighborMap,nodeMap,edgeMap,directed,edgeType,weightAttribute
 		var distance = lib.shortestPath(nodeID,neighborMap,nodeMap,edgeMap,directed,edgeType,weightAttribute);
@@ -373,8 +311,7 @@ app.post('/getCloseness', function(req, res){
 		}
 		closenessArray[nodeID] = closeness;
 	}
-	//console.log(closenessArray);
 	res.send(closenessArray);
 })
 
-app.listen(8080, () => console.log('Example app listening on port 3000!'))
+app.listen(8080, () => console.log('Example app listening on port 8080!'))

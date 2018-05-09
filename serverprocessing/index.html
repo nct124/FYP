@@ -45,10 +45,6 @@
 						<a href="" id="exportLink"></a>
 					</div>
 					<div class="form-group errormsgdiv">
-						<!--<div class="errormsg alert alert-danger fade in">
-						  <strong>Danger!</strong> Indicates a dangerous or potentially negative action.
-						  <a href="#" class="close" data-dismiss="alert" aria-label="close">&times;</a>
-						</div>-->
 					</div>
 				</form>
 			</div>
@@ -68,7 +64,7 @@
 						<svg class="graph" id = "graph1"></svg>
 					</div>
 					<div id="graphpanel" class="tab-pane fade">
-						meow
+					
 					</div>
 				</div>
 				<ul class="nav nav-pills nav-justified">
@@ -196,9 +192,15 @@
 											<label for="nodeClassSelect">Node Label Class:</label><br/>
 											<select id="nodeClassSelect" class="form-control"></select>
 											<label for="nodeLabelAttributeSelect">Node Label Attribute:</label><br/>
-											<span class="helpInfo">To take in account the direction used to calculate the cosine similarity.</span>
+											<span class="helpInfo">To change the label of the nodes.</span>
 											<table style="width:100%" id="nodeLabelAttributeSelect"></table>
 											<input type="button" id="nodeClassSettingBtn" class="btn btn-success" value="Apply"/>
+										</div>
+										<div class="form-group">
+											<label for="nodeSize">Node Size:</label><br/>
+											<span class="helpInfo">To adjust the node size for better visualization.</span>
+											<input id="nodeSize" class="form-control" type="number" value="20"/>
+											<input type="button" id="nodeSizeSettingBtn" class="btn btn-success" value="Apply"/>
 										</div>
 									</div>
 								</div>
@@ -219,6 +221,12 @@
 											<label for="edgeWeightageAttributeSelect">Edge Weightage Attribute:</label>
 											<table style="width:100%" id="edgeWeightageAttributeSelect"></table>
 											<input type="button" id="edgeClassSettingBtn" class="btn btn-success" value="Apply"/>
+										</div>
+										<div class="form-group">
+											<label for="edgeLength">Edge Length:</label><br/>
+											<span class="helpInfo">To adjust the length of the edge between nodes size.</span>
+											<input id="edgeLength" class="form-control" type="number" value="500"/>
+											<input type="button" id="edgeLengthSettingBtn" class="btn btn-success" value="Apply"/>
 										</div>
 									</div>
 								</div>
