@@ -24,10 +24,10 @@ function DegreeDistribution(data,avgDegree,gamma) {
 	this.powerLawDistribution = function(){
 		var sum = this.RiemannZetaSum();
 		for(i in data){
-			if(sum>0){
-				var k = data[i]["x"];
+			var k = parseInt(data[i]["x"]);
+			if(sum>0 && k>0){
 				var powerlaw = (Math.pow(k, (-this.gamma)))/(sum);
-				//console.log("["+k+"^(-"+gamma+")]/"+sum+"="+powerlaw)
+				console.log("["+k+"^(-"+gamma+")]/"+sum+"="+powerlaw)
 				this.data[i]["powerlaw"] = powerlaw;
 			}else{
 				this.data[i]["powerlaw"] = 0;

@@ -177,8 +177,7 @@ $( document ).ready(function() {
 		var extension = this.value.split('.').pop();
 		reader.onload = function(e) {
 			var raw = reader.result;
-			
-			try{
+			//try{
 				if(extension=="dl"){
 					var content = raw.split("DATA:");
 					var data = content[1].trim();
@@ -191,23 +190,20 @@ $( document ).ready(function() {
 						edgeSchema.push(edgeS);
 					}
 					for(var j=0;j<networkSize;j++){
-						var nodeID = "#"+(j+1);
-						nodes[nodeID] = {"@rid":nodeID,"@class":"V",}
+						var nodeID = "@"+(j+1);
+						nodes[nodeID] = {"@rid":nodeID,"@class":"V"}
 					}
-					
 					schemas.edge = edgeSchema;
 					schemas.vertex = vertexSchema;
-					
 					var datarow = data.split("\n");
-					
 					var f = 0;
 					for(i in  schemas.edge){
 						for(var j=0;j<networkSize;j++){
 							var DRC = datarow[(f*networkSize)+j].split(" ");
 							for(var k=0;k<networkSize;k++){
 								if(DRC[k]!=0){
-									var node1 = "#"+(j+1);
-									var node2 = "#"+(k+1);
+									var node1 = "@"+(j+1);
+									var node2 = "@"+(k+1);
 									var EID = node1+"to"+node2+":"+schemas.edge[i].name;
 									if(edges[node2+"to"+node1+":"+schemas.edge[i].name]==undefined){
 										edges[EID] = {"@rid":EID,"@class":schemas.edge[i].name,in:node2,out:node1,source:nodes[node1],target:nodes[node2]};
@@ -218,15 +214,47 @@ $( document ).ready(function() {
 											nodes[node1]["out_"+schemas.edge[i].name] = [];
 										}
 										nodes[node1]["out_"+schemas.edge[i].name].push(EID);
-										if(nodes[node1]["in_"+schemas.edge[i].name]==undefined){
-											nodes[node1]["in_"+schemas.edge[i].name] = [];
+										if(nodes[node2]["in_"+schemas.edge[i].name]==undefined){
+											nodes[node2]["in_"+schemas.edge[i].name] = [];
 										}
-										nodes[node1]["in_"+schemas.edge[i].name].push(EID);
+										nodes[node2]["in_"+schemas.edge[i].name].push(EID);
 									}
 								}
 							}
 						}
 						f++;
+					}
+				}else if(extension=="paj"){
+					var edgeSchema = [{name:"E",properties:[{name:"weightage"}]}];
+					var vertexSchema = [{name:"V",properties:[]}];
+					schemas.edge = edgeSchema;
+					schemas.vertex = vertexSchema;
+					var content = raw.split("*Edges");
+					var edgelist = content[1].trim().split("\n");
+					var nodelist = content[0].split("*Vertices");
+					nodelist = nodelist[1].trim().split("\n");
+					var networkSize = parseInt(nodelist[0]);
+					var hm = {};
+					for(var i=1;i<nodelist.length;i++){
+						var line = nodelist[i].split(" ");
+						var nodeID = "@"+(line[0]);
+						nodes[nodeID] = {"@rid":nodeID,"@class":"V"};
+					}
+					for(var i=0;i<edgelist.length;i++){
+						var line = edgelist[i].split(" ");
+						var node1 = "@"+line[0];
+						var node2 = "@"+line[1];
+						var EID = node1+"to"+node2+":E";
+						var weightage = parseInt(line[2]);
+						edges[EID] = {"@rid":EID,"@class":"E",in:node2,out:node1,source:nodes[node1],target:nodes[node2],"weightage":weightage};
+						if(nodes[node1]["out_E"]==undefined){
+							nodes[node1]["out_E"] = [];
+						}
+						nodes[node1]["out_E"].push(EID);
+						if(nodes[node2]["in_E"]==undefined){
+							nodes[node2]["in_E"] = [];
+						}
+						nodes[node2]["in_E"].push(EID);
 					}
 				}else if(raw.search("#nodes property")==-1){
 					var arr = raw.split("\n");
@@ -234,8 +262,8 @@ $( document ).ready(function() {
 						var temp = arr[i].toString().trim();
 						if(temp.charAt(0)!="#"){
 							var node12 = temp.split(" ");
-							var node1 = "#"+node12[0].toString();
-							var node2 = "#"+node12[1].trim().toString();
+							var node1 = "@"+node12[0].toString();
+							var node2 = "@"+node12[1].trim().toString();
 							if(nodes[node1]==undefined){
 								nodes[node1] = {"@rid":node1,"@class":"V",}
 							}
@@ -284,8 +312,8 @@ $( document ).ready(function() {
 						var temp = arrLink[i];
 						if(temp.charAt(0)!="#"){
 							var node12 = temp.split("to");
-							var node1 = "#"+node12[0];
-							var node2 = "#"+node12[1].trim();
+							var node1 = "@"+node12[0];
+							var node2 = "@"+node12[1].trim();
 							if(nodes[node1]==undefined){
 								nodes[node1] = {"@rid":node1}
 							}
@@ -310,8 +338,8 @@ $( document ).ready(function() {
 						var edge12 = temp.split(" ");
 						edges[edge12[0]]["@class"] = edge12[1];
 						var ids = edge12[0].split("to");
-						var sid = ids[0];
-						var did = ids[1];
+						var sid = "@"+ids[0];
+						var did = "@"+ids[1];
 						if(nodes[sid]["in_"]!=undefined){
 							nodes[sid]["in_"+edge12[1]] = nodes[sid]["in_"].slice()
 							delete nodes[sid]["in_"];
@@ -338,10 +366,13 @@ $( document ).ready(function() {
 					for(i in arrNodeproperty){
 						var temp = arrNodeproperty[i];
 						var node12 = temp.split(" ");
-						nodes[node12[0]]["@class"] = node12[1];
+						if(nodes["@"+node12[0]]==undefined){
+							nodes["@"+node12[0]] = {"@rid":node12[0]}
+						}
+						nodes["@"+node12[0]]["@class"] = node12[1];
 						for(j in schemas.vertex[node12[1]].properties){
 							var property = schemas.vertex[node12[1]].properties[j].name;
-							nodes[node12[0]][property] = node12[parseInt(j)+2];
+							nodes["@"+node12[0]][property] = node12[parseInt(j)+2];
 						}
 					}
 					var nodesSchArr = Object.keys(schemas.vertex).map(function (key) { return schemas.vertex[key]; });
@@ -357,10 +388,10 @@ $( document ).ready(function() {
 					displayBasicNetworkProperties(property);
 				});
 				document.getElementById("uploadNetworkBtn").value="";
-			}catch(error){
-				var msg = "Text file format is not supported"
-				displayErrorMsg(msg)
-			}
+			//}catch(error){
+				//var msg = "Text file format is not supported"
+				//displayErrorMsg(msg)
+			//}
 		}
 		reader.readAsText(file);	
 	});
@@ -587,6 +618,8 @@ $( document ).ready(function() {
 				$("#spectralDirection").val("both");
 				$(".spectraloptions.direction").css("display","none");
 			}
+			var property = active.schemas.edge[document.getElementById("OverallEdgeClassSelect").selectedIndex-1].properties;
+			displayClassProperty(property,"spectralAttributeSelect",false);
 		}
 	})
 	$("#ClusteringSettingBtn").on("click",function(){
@@ -606,7 +639,8 @@ $( document ).ready(function() {
 		}else if(method=="spectralClustering"){
 			var direction = $("#spectralDirection").val();
 			var noOfCluster = $("#NumOfClusterInput").val();
-			active.setSpectralClusteringSettings(noOfCluster,direction);
+			var weightageAttr = $("input[name='spectralAttributeSelect']:checked").val();
+			active.setSpectralClusteringSettings(noOfCluster,direction,weightageAttr);
 		}else{
 			active.offClusteringMethod();
 		}
@@ -614,7 +648,7 @@ $( document ).ready(function() {
 	$("#ClusterByNodeClassSelect").on("change",function(){
 		var index = this.options[this.selectedIndex].value;
 		var property = active.schemas.vertex[index].properties
-		displayClassProperty(property,"ClusterByNodeAttributeSelect")
+		displayClassProperty(property,"ClusterByNodeAttributeSelect",true)
 	});
 	
 	$("#hiearchicalThreshold").on("change",function(){
@@ -658,10 +692,10 @@ $( document ).ready(function() {
 	$("#edgeClassSelect").on("change",function(){
 		var index = this.options[this.selectedIndex].value;
 		var property = active.schemas.edge[index].properties
-		displayClassProperty(property,"edgeWeightageAttributeSelect")
+		displayClassProperty(property,"edgeWeightageAttributeSelect",false)
 		var pastProperty= active.options.edgeLabel[active.schemas.edge[index].name];
 		$("input[type='radio'][name='edgeWeightageAttributeSelect'][value='"+pastProperty+"']").attr("checked",true);
-		displayClassProperty(property,"edgeLabelAttributeSelect")
+		displayClassProperty(property,"edgeLabelAttributeSelect",true)
 		var pastProperty= active.options.weight[active.schemas.edge[index].name];
 		$("input[type='radio'][name='edgeLabelAttributeSelect'][value='"+pastProperty+"']").attr("checked",true);
 	});
@@ -677,7 +711,7 @@ $( document ).ready(function() {
 	$("#nodeClassSelect").on("change",function(){
 		var index = this.options[this.selectedIndex].value;
 		var property = active.schemas.vertex[index].properties
-		displayClassProperty(property,"nodeLabelAttributeSelect");
+		displayClassProperty(property,"nodeLabelAttributeSelect",true);
 		var pastProperty= active.options.nodeLabel[active.schemas.vertex[index].name];
 		$("input[type='radio'][name='nodeLabelAttributeSelect'][value='"+pastProperty+"']").attr("checked",true);
 	});
@@ -721,9 +755,12 @@ function updateSliderRange(range,display,max,min,step){
 	$(range).val(min)
 	$(display).html(min);
 }
-function displayClassProperty(property,div){
+function displayClassProperty(property,div,show){
 	var radioBtnhtml1="<label><input type='radio' value='' checked name='"+div+"'/>none</label>";
-	var radioBtnhtml2="<label><input type='radio' value='@rid' name='"+div+"'/>rid</label>";
+	var radioBtnhtml2="";
+	if(show==true){
+		radioBtnhtml2 = "<label><input type='radio' value='@rid' name='"+div+"'/>rid</label>";
+	}
 	$("#"+div).html("");
 	$("#"+div).append("<tr><td>"+radioBtnhtml1+"</td><td>"+radioBtnhtml2+"</td></tr>");
 	for(var i=0;i<property.length;i=i+2){

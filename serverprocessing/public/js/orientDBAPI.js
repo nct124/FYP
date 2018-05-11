@@ -15,8 +15,8 @@
 			edgeUsed:"E",
 			IDlink:"@rid",
 			rdy:function(){},
-			radius:20,//20,
-			distance:500,
+			radius:15,//20,
+			distance:200,
 			nodeClick:function(node){},
 			edgeClick:function(edge){},
 			clusteringMethod:"off",
@@ -29,7 +29,8 @@
 			filterType : "off",
 			filterCondition : 0,
 			layout:"",
-			layoutMetric:""
+			layoutMetric:"",
+			spectralClusteringWeightage:""
         };
 		this.options.schemaURL = "http://"+this.options.RootURL+":2480/function/Testing/classProperty/";
 		$.extend(this.options, options);
@@ -74,7 +75,7 @@
 			.attr("class","wrapper");
 			rect = this.initZoom(rect);
 			rect = this.initMouseMove(rect);
-			this.nodeColor = d3.scaleOrdinal(d3.schemeCategory20b);
+			this.nodeColor = d3.scaleOrdinal(d3.schemeCategory20c);
 			this.edgeColor = d3.scaleOrdinal(d3.schemeCategory10);
 			
 			//.gravity, .charge, .linkDistance and maybe also .linkStrength
@@ -84,7 +85,7 @@
 				if(d.source.cluster==undefined || d.source.cluster==undefined){
 					return (parent.options.distance)/3;
 				}else if(d.source.cluster==d.target.cluster){
-					return (parent.options.distance)/3;
+					return (parent.options.distance)/9;
 				}else{
 					return (parent.options.distance)/3;
 				}
@@ -99,8 +100,9 @@
 			defs.append('svg:marker')
 				.attr('id', 'endarrow')
 				.attr('viewBox', '0 -5 10 10')
-				.attr('refX', (parent.options.radius+10)+"px")
-				.attr('refY', "0px")
+				//.attr('refX', (parent.options.radius+10)+"px")
+				.attr('refX', (this.options.distance/6)+"px")
+				.attr('refY', "-"+((this.options.distance/500)*6)+"px")
 				.attr('markerWidth', 5)
 				.attr('markerHeight', 5)
 				.attr('orient', 'auto')
@@ -287,7 +289,7 @@
 					var weight = 1;
 					if(this.options.weight[edgeType]!=undefined && this.options.weight[edgeType]!=""){
 						var edge = getEdge(current,ne,edgeType,this.nodeMap,this.edgeMap,this.directed)
-						weight = parseInt(edge[this.options.weight[edgeType]]);
+						weight = parseFloat(edge[this.options.weight[edgeType]]);
 					}
 					if(visited[ne]==undefined && ( dist[ne]==undefined || (dist[ne]> (dist[current]+weight)))){
 						dist[ne] = dist[current]+weight;
@@ -426,9 +428,8 @@
 			this.nodeText = this.svg.select(".wrapper").append("g").attr("class", "nodeLabels").selectAll("g")
 			.data(this.displayNodes)
 			.enter().append("text")
-			.attr("x", 0)
-			.attr("y", 0)
-			.attr("fill","white")
+			.attr("dx", -5)
+			.attr("fill","black")
 			.attr("ridnlabel",function(d) { return d["@rid"]})
 			.style("font-family", "sans-serif")
 			.style("font-size", "14px")
@@ -957,7 +958,7 @@
 				this.checkExpand();
 			}else if(this.options.clusteringMethod=="spectralClustering"){
 				if(this.clusters==undefined){
-					this.clusters = this.spectralGraphPartition(this.displayNodes,this.displayLinks,this.options.edgeUsed,this.options.noOfCluster,this.options.spectralClusteringDirection);
+					this.clusters = this.spectralGraphPartition(this.displayNodes,this.displayLinks,this.options.edgeUsed,this.options.noOfCluster,this.options.spectralClusteringDirection,this.options.spectralClusteringWeightage);
 				}
 				var net = this.createClusters(this.displayNodes,this.displayLinks,this.clusters);
 				this.displayNodes = net.nodes;
@@ -1097,8 +1098,8 @@
 			var finalLmatrix = matrixMult(lmatrix2,dmatrix);
 			return {nodemap:nodemap,lmatrix:lmatrix};
 		},
-		spectralGraphPartition:function(nodes,links,edgeType,k,direction){
-			var lmatrix = this.getLMatrix(nodes,links,edgeType,direction,"weightage");
+		spectralGraphPartition:function(nodes,links,edgeType,k,direction,edgeWeightageAttr){
+			var lmatrix = this.getLMatrix(nodes,links,edgeType,direction,edgeWeightageAttr);
 			var centroids = [];
 			var parent = this;
 			this.getEigenValues(lmatrix.lmatrix,function(eigenvalues){
@@ -2170,10 +2171,11 @@
 			this.clusterMap={};
 			this.resetGraph();
 		},
-		setSpectralClusteringSettings:function(noOfCluster,direction){
+		setSpectralClusteringSettings:function(noOfCluster,direction,weightageAttr){
 			this.options.clusteringMethod = "spectralClustering";
 			this.options.noOfCluster = noOfCluster;
 			this.options.spectralClusteringDirection = direction;
+			this.options.spectralClusteringWeightage = weightageAttr;
 			this.clusters = undefined;
 			this.clusterMap={};
 			this.resetGraph();

@@ -1,29 +1,30 @@
 exports.calCC = function(node,edgeType,neighborMap,directed) {
-    var cc = 0;
-    var neighbor = neighborMap[edgeType + "_" + node['@rid']];
-    var Nv = 0;
-    //find num of neighbors who are neighbors of each other
-    if (neighbor != undefined && neighbor.length > 1) {
-        for (var i = 0; i < neighbor.length; i++) {
-            for (var j = 1; j < neighbor.length; j++) {
-                //if its not itself
-                if (neighbor[i] != neighbor[j]) {
-                    var arrA = neighborMap[edgeType + "_" + neighbor[i]];
-                    if (arrA != undefined) {
-                        if (arrA.indexOf(neighbor[j]) > -1) {
-                            Nv++;
-                        }
-                    }
-                }
-            }
-        }
-        if (this.directed=="true") {
-            cc = Nv / ((neighbor.length) * (neighbor.length - 1));
-        } else {
-            cc = Nv / ((neighbor.length) * (neighbor.length - 1));
-        }
-    }
-    return cc;
+	var cc = 0;
+	var neighbor = neighborMap[edgeType+"_"+node['@rid']];
+	var Nv = 0;
+	//find num of neighbors who are neighbors of each other
+	if(neighbor!=undefined &&neighbor.length>1){
+		for(var i=0;i<neighbor.length;i++){
+			for(var j=0;j<neighbor.length;j++){
+				//if its not itself
+				if(neighbor[i]!=neighbor[j]){
+					var arrA = neighborMap[edgeType+"_"+neighbor[i]];
+					if(arrA!=undefined){
+						if(arrA.indexOf(neighbor[j])>-1){
+							Nv++;
+						}
+					}
+					
+				}
+			}
+		}
+		if(this.directed == "true"){
+			cc = Nv/((neighbor.length)*(neighbor.length-1));
+		}else{
+			cc = Nv/((neighbor.length)*(neighbor.length-1));
+		}
+	}
+	return cc;
 }
 
 exports.path = [];

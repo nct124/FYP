@@ -107,7 +107,6 @@ app.post('/getEigenValues', function(req, res){
 		}
 	}
 	var newvalue = numericjs.eig(lmatrix);
-	console.log({num:newvalue});
 	res.send({num:newvalue});
 });
 app.post('/getDiameter', function(req, res){
@@ -139,10 +138,6 @@ app.post('/getDiameter', function(req, res){
 		for (i in lib.path) {
 			lib.path[i].unshift(lds);
 		}
-		console.log({
-			dist: ld,
-			path: lib.path
-		})
 		res.send({
 			dist: ld,
 			path: lib.path
@@ -155,6 +150,7 @@ app.post('/getCCDistribution', function(req, res){
 	var edgeType = req.body.edgeType;
 	var directed = req.body.directed;
 	var data = {};
+	var datacount = {};
 	var avg = 0;
 	var noOfNodes = 0;
 	for (i in nodes) {
@@ -165,13 +161,16 @@ app.post('/getCCDistribution', function(req, res){
 			var CC = lib.calCC(node,edgeType,neighborMap,directed);
 			avg += CC;
 			if (data[k] == undefined) {
-				data[k] = CC;
+				data[k] = 0;
+				datacount[k] = 0;
 			}
+			data[k] += CC;
+			datacount[k]++;
 		}
 	}
 	var realData = [];
 	for (i in data) {
-		var node = data[i];
+		var node = data[i]/datacount[i];
 		realData.push({
 			x: i,
 			real: node.toString()
@@ -179,7 +178,6 @@ app.post('/getCCDistribution', function(req, res){
 	}
 	avg = avg / noOfNodes;
 	var returnJSON = {data:realData,avg:avg};
-	console.log(returnJSON);
 	res.send(returnJSON);
 });
 app.post('/getPageRank', function(req, res){
